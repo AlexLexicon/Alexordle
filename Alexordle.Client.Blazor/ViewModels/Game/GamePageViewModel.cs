@@ -83,9 +83,9 @@ public partial class GamePageViewModel : ObservableObject, INotificationHandler<
     }
 
     [RelayCommand]
-    private async Task Loaded()
+    private async Task Rendered()
     {
-        if (PuzzleCode is not null)
+        if (PuzzleId is null && PuzzleCode is not null)
         {
             PuzzleCodeStore = PuzzleCode;
 

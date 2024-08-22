@@ -50,10 +50,10 @@
     [SupplyParameterFromQuery]
     public string? Puzzle { get; set; }
 
-    protected override void OnInitialized()
+    protected override void OnParametersSet()
     {
         ViewModel.PuzzleCode = Puzzle;
 
-        base.OnInitialized();
+        base.OnParametersSet();
     }
 }
