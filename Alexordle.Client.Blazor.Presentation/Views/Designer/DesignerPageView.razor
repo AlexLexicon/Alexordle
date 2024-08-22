@@ -1,0 +1,108 @@
+﻿@page "/"
+@inherits InjectedPage<DesignerPageViewModel>
+<PageTitle>Alexordle Designer</PageTitle>
+
+<div class="relative isolate px-4 py-24 sm:py-32 lg:px-8">
+    <div class="mx-auto max-w-xl lg:max-w-4xl">
+        <h2 class="text-4xl font-bold tracking-tight text-gray-900 mb-2">
+            Design your own word puzzle!
+        </h2>
+        <p class="text-lg text-gray-600">
+            Use this tool to create a custom word puzzle.
+        </p>
+        <p class="text-lg text-gray-600">
+            Based on the original Xordle by <a class="text-cyan-700 font-medium" target="_blank" href="https://twitter.com/kellydornhaus">keldor</a> at <a class="text-cyan-700 font-medium" target="_blank" href="https://xordle.org/">Xordle.org</a>.
+        </p>
+        <div class="mt-16 flex flex-col lg:flex-row">
+            <div class="lg:flex-auto">
+                <div class="grid grid-cols-1 gap-x-8 gap-y-6">
+                    <div>
+                        <div class="designer-textinput-section">
+                            Spell Check
+                        </div>
+                        <div class="flex flex-row items-center">
+                            <input type="checkbox" @bind="ViewModel.IsSpellChecking" @bind:after="@ViewModel.IsSpellCheckingChangedCommand.BindAfter()" class="designer-checkbox">
+                            <p class="designer-checkbox-label">
+                                Guesses must match an answer or be within the word list.
+                            </p>
+                        </div>
+                        @if (!ViewModel.IsSpellCheckingValid)
+                        {
+                            <ul class="lexicom-textinput-errors">
+                                <li class="lexicom-textinput-error">
+                                    The word list is only avaliable for games with a width of '5'.
+                                </li>
+                            </ul>
+                        }
+                    </div>
+                    <div>
+                        <div class="designer-textinput-section">
+                            Width
+                        </div>
+                        <TextInput @bind-Text="@ViewModel.WidthText" @bind-Text:after="@ViewModel.WidthTextChangedCommand.BindAfter()" Validator="@ViewModel.WidthTextRuleSetValidator" />
+                    </div>
+                    <div>
+                        <div class="designer-textinput-section">
+                            Maximum Guesses
+                        </div>
+                        <TextInput @bind-Text="@ViewModel.MaximumGuessesText" @bind-Text:after="@ViewModel.MaximumGuessesTextChangedCommand.BindAfter()" Validator="@ViewModel.MaximumGuessesTextRuleSetValidator" />
+                    </div>
+                    <div>
+                        <div class="designer-textinput-section">
+                            <div>
+                                Clues
+                            </div>
+                            <button type="button" @onclick="ViewModel.AddClueInputCommand.Bind()" class="designer-button designer-add-button">
+                                <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                                </svg>
+                            </button>
+                        </div>
+                        @foreach (ClueInputViewModel clueInputViewModel in ViewModel.ClueInputViewModels)
+                        {
+                            <ClueInputView ViewModel="clueInputViewModel" />
+                        }
+                    </div>
+                    <div>
+                        <div class="designer-textinput-section">
+                            <div>
+                                Answers
+                            </div>
+                            <button type="button" @onclick="ViewModel.AddAnswerInputCommand.Bind()" class="designer-button designer-add-button">
+                                <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                                </svg>
+                            </button>
+                        </div>
+                        @if (!ViewModel.HasAnswers)
+                        {
+                            <ul class="lexicom-textinput-errors">
+                                <li class="lexicom-textinput-error">
+                                    A puzzle must have at least one answer.
+                                </li>
+                            </ul>
+                        }
+                        @foreach (AnswerInputViewModel answerInputViewModel in ViewModel.AnswerInputViewModels)
+                        {
+                            <AnswerInputView ViewModel="answerInputViewModel" />
+                        }
+                    </div>
+                </div>
+                <div class="w-full flex justify-center mt-4">
+                    <div class="grid grid-cols-2 gap-2.5 w-3/5">
+                        <button type="button" @onclick="ViewModel.CopyGameUrlCommand.Bind()" class="designer-button @(ViewModel.IsPlayable ? "designer-secondary-button-enabled" : "designer-secondary-button-disabled")">
+                            Copy Link
+                        </button>
+                        <button type="button" @onclick="ViewModel.PlayGameCommand.Bind()" class="designer-button  @(ViewModel.IsPlayable ? "designer-primary-button-enabled" : "designer-primary-button-disabled")">
+                            Play
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="h-0.5 rounded bg-gray-400 my-4 lg:my-0 lg:h-auto lg:w-0.5 lg:translate-x-8" />
+            <div class="lg:w-2/4 lg:flex">
+                <PalleteView ViewModel="@ViewModel.PalleteViewModel"/>
+            </div>
+        </div>
+    </div>
+</div>

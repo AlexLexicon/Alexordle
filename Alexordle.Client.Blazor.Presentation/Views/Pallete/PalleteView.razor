@@ -1,0 +1,20 @@
+﻿@inherits ParameterLayout<PalleteViewModel>
+
+<div class="w-full flex flex-col">
+    @if (ViewModel.ClueRowViewModels.Count is > 0)
+    {
+        <div style="grid-template-columns: repeat(@(ViewModel.Columns), minmax(0, 1fr));" class="pallete-table">
+            @foreach (RowViewModel rowViewModel in ViewModel.ClueRowViewModels)
+            {
+                <RowView ViewModel="rowViewModel" />
+            }
+        </div>
+        <div class="w-3/5 h-1 bg-emerald-700 my-4 mx-auto" />
+    }
+    <div style="grid-template-columns: repeat(@(ViewModel.Columns), minmax(0, 1fr));" class="pallete-table">
+        @foreach (RowViewModel rowViewModel in ViewModel.RowViewModels)
+        {
+            <RowView ViewModel="rowViewModel" />
+        }
+    </div>
+</div>

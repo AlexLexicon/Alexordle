@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <!-- Meta -->
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- About -->
+    <title>Alexordle.Client.Blazor</title>
+
+    <!-- Local -->
+    <link rel="stylesheet" href="app.css" />
+
+    <!-- Blazor -->
+    <base href="/" />
+
+</head>
+
+<body>
+
+    <!-- Application -->
+    <div id="app">
+        <svg class="loading-progress">
+            <circle r="40%" cx="50%" cy="50%" />
+            <circle r="40%" cx="50%" cy="50%" />
+        </svg>
+        <div class="loading-progress-text"></div>
+    </div>
+
+    <div id="blazor-error-ui">
+        An unhandled error has occurred.
+        <a href="" class="reload">Reload</a>
+        <a class="dismiss">🗙</a>
+    </div>
+
+    <!-- Blazor -->
+    <script src="_framework/blazor.webassembly.js"></script>
+    <script src="_content/Lexicom.Concentrate.Blazor.WebAssembly.Amenities/lexicom.concentrate.amenities.js"></script>
+
+</body>
+
+</html>

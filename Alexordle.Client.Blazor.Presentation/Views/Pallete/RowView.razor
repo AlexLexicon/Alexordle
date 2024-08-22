@@ -1,0 +1,16 @@
+﻿@inherits ParameterLayout<RowViewModel>
+
+<div class="pallete-cell">
+    <div class="pallete-cell-base pallete-cell-character border-slate-300">
+        &nbsp;
+    </div>
+</div>
+@foreach (CellViewModel cellViewModel in ViewModel.CellViewModels)
+{
+    <CellView ViewModel="cellViewModel" />
+}
+<div class="pallete-cell">
+    <div class="pallete-cell-base border-slate-300">
+        @ViewModel.Annotation
+    </div>
+</div>

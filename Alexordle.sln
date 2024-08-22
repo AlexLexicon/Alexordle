@@ -1,0 +1,56 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.11.35208.52
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".repo", ".repo", "{E59908BE-E995-4592-A3A3-90845760696D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Client", "Client", "{D9CA89A5-4E72-4D72-8237-350743C683E1}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Blazor", "Blazor", "{DC856E7E-C337-42F6-BC5F-3554CC179367}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alexordle.Client.Application", "Alexordle.Client.Application\Alexordle.Client.Application.csproj", "{B2FA26BF-460D-41E4-9057-D449AB6A0285}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alexordle.Client.Application.Database", "Alexordle.Client.Application.Database\Alexordle.Client.Application.Database.csproj", "{5D9C915A-47E4-4EAB-BAA0-4608D5E06787}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alexordle.Client.Blazor", "Alexordle.Client.Blazor\Alexordle.Client.Blazor.csproj", "{EBB4518D-A46E-445C-8091-FED0B3765902}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alexordle.Client.Blazor.Presentation", "Alexordle.Client.Blazor.Presentation\Alexordle.Client.Blazor.Presentation.csproj", "{84BD44BA-AA63-420F-B221-2BADD47D29D9}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B2FA26BF-460D-41E4-9057-D449AB6A0285}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B2FA26BF-460D-41E4-9057-D449AB6A0285}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B2FA26BF-460D-41E4-9057-D449AB6A0285}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B2FA26BF-460D-41E4-9057-D449AB6A0285}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5D9C915A-47E4-4EAB-BAA0-4608D5E06787}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5D9C915A-47E4-4EAB-BAA0-4608D5E06787}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5D9C915A-47E4-4EAB-BAA0-4608D5E06787}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5D9C915A-47E4-4EAB-BAA0-4608D5E06787}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EBB4518D-A46E-445C-8091-FED0B3765902}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EBB4518D-A46E-445C-8091-FED0B3765902}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EBB4518D-A46E-445C-8091-FED0B3765902}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EBB4518D-A46E-445C-8091-FED0B3765902}.Release|Any CPU.Build.0 = Release|Any CPU
+		{84BD44BA-AA63-420F-B221-2BADD47D29D9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{84BD44BA-AA63-420F-B221-2BADD47D29D9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{84BD44BA-AA63-420F-B221-2BADD47D29D9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{84BD44BA-AA63-420F-B221-2BADD47D29D9}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{DC856E7E-C337-42F6-BC5F-3554CC179367} = {D9CA89A5-4E72-4D72-8237-350743C683E1}
+		{B2FA26BF-460D-41E4-9057-D449AB6A0285} = {D9CA89A5-4E72-4D72-8237-350743C683E1}
+		{5D9C915A-47E4-4EAB-BAA0-4608D5E06787} = {D9CA89A5-4E72-4D72-8237-350743C683E1}
+		{EBB4518D-A46E-445C-8091-FED0B3765902} = {DC856E7E-C337-42F6-BC5F-3554CC179367}
+		{84BD44BA-AA63-420F-B221-2BADD47D29D9} = {DC856E7E-C337-42F6-BC5F-3554CC179367}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {7542DB9F-7537-4C93-A2A1-6D66F4CF2DC9}
+	EndGlobalSection
+EndGlobal

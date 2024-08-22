@@ -1,0 +1,28 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <WasmBuildNative>true</WasmBuildNative>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Lexicom.Concentrate.Blazor.WebAssembly.Amenities" Version="8.0.116" />
+    <PackageReference Include="Lexicom.Concentrate.Blazor.WebAssembly.Components" Version="8.0.116" />
+    <PackageReference Include="Lexicom.DependencyInjection.Primitives.For.Blazor.WebAssembly" Version="8.0.90" />
+    <PackageReference Include="Lexicom.Http" Version="8.0.90" />
+    <PackageReference Include="Lexicom.Mvvm.For.Blazor.WebAssembly" Version="8.0.90" />
+    <PackageReference Include="Lexicom.Validation.For.Blazor.WebAssembly" Version="8.0.90" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.8" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.8" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.8" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.9" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Alexordle.Client.Blazor\Alexordle.Client.Blazor.csproj" />
+  </ItemGroup>
+
+</Project>

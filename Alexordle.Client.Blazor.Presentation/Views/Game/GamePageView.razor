@@ -1,0 +1,50 @@
+﻿@page "/game"
+@inherits InjectedPage<GamePageViewModel>
+<PageTitle>Alexordle</PageTitle>
+
+<div class="mx-auto max-w-md">
+    <div class="text-center my-8">
+        <p class="font-bold tracking-tight text-gray-900 text-6xl">Alexordle</p>
+        <div class="mt-2">
+            <a class="text-cyan-700 font-medium text-lg cursor-pointer" @onclick="ViewModel.NavigateToDesignerCommand.Bind()">Click here to design your own puzzle!</a>
+        </div>
+    </div>
+
+    <div class="flex flex-col justify-center">
+        <div class="grow">
+            <PalleteView ViewModel="@ViewModel.PalleteViewModel" />
+        </div>
+        <MessageView ViewModel="@ViewModel.MessageViewModel" />
+        @if (!ViewModel.IsDefeat && !ViewModel.IsVictory)
+        {
+            <KeyboardView ViewModel="@ViewModel.KeyboardViewModel" />
+        }
+        else
+        {
+            <div class="flex justify-center">
+                <div class="mt-2">
+                    <button type="button" @onclick="ViewModel.ShareCommand.Bind()" class="designer-button designer-secondary-button-enabled">
+                        Share
+                    </button>
+                </div>
+            </div>
+            <div class="mt-2 text-xl mx-auto text-center">
+                @ViewModel.Explaination
+            </div>
+        }
+    </div>
+</div>
+
+@code
+{
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? Puzzle { get; set; }
+
+    protected override void OnInitialized()
+    {
+        ViewModel.PuzzleCode = Puzzle;
+
+        base.OnInitialized();
+    }
+}
