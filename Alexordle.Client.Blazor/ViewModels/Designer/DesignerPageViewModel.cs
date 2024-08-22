@@ -149,6 +149,13 @@ public partial class DesignerPageViewModel : ObservableObject, INotificationHand
         await RefreshDesignerAsync();
     }
 
+    public async Task RedirectAsync(string puzzleCode)
+    {
+        string url = await _urlService.GetPuzzleUrlAsync(puzzleCode);
+
+        await _navigationService.NavigateToUrlAsync(url);
+    }
+
     [RelayCommand]
     private async Task LoadedAsync()
     {

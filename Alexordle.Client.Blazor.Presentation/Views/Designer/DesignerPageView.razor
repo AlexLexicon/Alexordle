@@ -106,3 +106,20 @@
         </div>
     </div>
 </div>
+
+@code
+{
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? Puzzle { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(Puzzle))
+        {
+            await ViewModel.RedirectAsync(Puzzle);
+        }
+
+        await base.OnParametersSetAsync();
+    }
+}
