@@ -2,11 +2,11 @@
 @inherits InjectedPage<GamePageViewModel>
 <PageTitle>Alexordle</PageTitle>
 
-<div class="mx-auto max-w-md">
+<div class="mx-auto max-w-xs lg:max-w-md">
     <div class="text-center my-8">
-        <p class="font-bold tracking-tight text-gray-900 text-6xl">Alexordle</p>
+        <p class="font-bold tracking-tight text-gray-900 text-4xl lg:text-6xl">Alexordle</p>
         <div class="mt-2">
-            <a class="text-cyan-700 font-medium text-lg cursor-pointer" @onclick="ViewModel.NavigateToDesignerCommand.Bind()">Click here to design your own puzzle!</a>
+            <a class="text-cyan-700 font-medium text-base lg:text-lg cursor-pointer" @onclick="ViewModel.NavigateToDesignerCommand.Bind()">Click here to design your own puzzle!</a>
         </div>
     </div>
 
