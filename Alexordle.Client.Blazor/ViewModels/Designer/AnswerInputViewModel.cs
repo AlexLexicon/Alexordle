@@ -80,7 +80,7 @@ public partial class AnswerInputViewModel : AbstractInputViewModel
     {
         Puzzle puzzle = await _puzzleService.GetPuzzleAsync(PuzzleId);
 
-        int count = await _letterService.CountLettersAsync(GuessWordId);
+        int count = await _letterService.GetLettersCountAsync(GuessWordId);
 
         if (count == puzzle.Width)
         {

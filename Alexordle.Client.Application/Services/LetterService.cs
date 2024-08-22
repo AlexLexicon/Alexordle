@@ -8,7 +8,7 @@ namespace Alexordle.Client.Application.Services;
 public interface ILetterService
 {
     Task<string> GetStringAsync(Guid wordId);
-    Task<int> CountLettersAsync(Guid wordId);
+    Task<int> GetLettersCountAsync(Guid wordId);
     Task<IReadOnlyList<Letter>> GetLettersAsync(Guid wordId);
     Task<char?> AppendLetterAsync(Guid wordId, char character);
     Task RemoveLetterAsync(Guid wordId);
@@ -78,7 +78,7 @@ public class LetterService : ILetterService
         return word;
     }
 
-    public async Task<int> CountLettersAsync(Guid wordId)
+    public async Task<int> GetLettersCountAsync(Guid wordId)
     {
         using var db = await _dbContextFactory.CreateDbContextAsync();
 

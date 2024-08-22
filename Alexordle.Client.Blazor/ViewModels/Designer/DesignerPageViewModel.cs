@@ -290,6 +290,7 @@ public partial class DesignerPageViewModel : ObservableObject, INotificationHand
 
         var state = new State
         {
+            TotalAnswers = 0,
             TotalGuesses = 0,
             MaximumGuesses = 0,
             RemainingAnswers = 0,

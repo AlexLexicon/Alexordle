@@ -1,24 +1,22 @@
 ﻿@inherits ParameterLayout<KeyboardViewModel>
 
-<div class="max-w-lg">
-    <div class="flex flex-col">
-        <div class="flex flex-row justify-stretch">
-            @foreach (KeyViewModel keyViewModel in ViewModel.Row1KeyViewModels)
-            {
-                <KeyView ViewModel="keyViewModel" />
-            }
-        </div>
-        <div class="flex flex-row justify-stretch">
-            @foreach (KeyViewModel keyViewModel in ViewModel.Row2KeyViewModels)
-            {
-                <KeyView ViewModel="keyViewModel" />
-            }
-        </div>
-        <div class="flex flex-row justify-stretch">
-            @foreach (KeyViewModel keyViewModel in ViewModel.Row3KeyViewModels)
-            {
-                <KeyView ViewModel="keyViewModel" />
-            }
-        </div>
+<div class="flex flex-col grow">
+    <div class="flex flex-row justify-stretch">
+        @foreach (KeyViewModel keyViewModel in ViewModel.Row1KeyViewModels)
+        {
+            <KeyView ViewModel="keyViewModel" />
+        }
+    </div>
+    <div class="flex flex-row justify-stretch">
+        @foreach (KeyViewModel keyViewModel in ViewModel.Row2KeyViewModels)
+        {
+            <KeyView ViewModel="keyViewModel" />
+        }
+    </div>
+    <div class="flex flex-row justify-stretch">
+        @foreach (KeyViewModel keyViewModel in ViewModel.Row3KeyViewModels)
+        {
+            <KeyView ViewModel="keyViewModel" />
+        }
     </div>
 </div>

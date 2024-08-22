@@ -14,25 +14,34 @@
         <div class="grow">
             <PalleteView ViewModel="@ViewModel.PalleteViewModel" />
         </div>
-        <MessageView ViewModel="@ViewModel.MessageViewModel" />
-        @if (!ViewModel.IsDefeat && !ViewModel.IsVictory)
-        {
+    </div>
+</div>
+<div class="mx-auto max-w-lg">
+    <MessageView ViewModel="@ViewModel.MessageViewModel" />
+    @if (!ViewModel.IsFinished)
+    {
+        <div class="flex justify-center">
             <KeyboardView ViewModel="@ViewModel.KeyboardViewModel" />
-        }
-        else
+        </div>
+    }
+    else
+    {
+        <div class="flex justify-center">
+            <div>
+                <button type="button" @onclick="ViewModel.ShareCommand.Bind()" class="designer-button designer-secondary-button-enabled">
+                    Share
+                </button>
+            </div>
+        </div>
+        @if (ViewModel.IsExplainable)
         {
             <div class="flex justify-center">
-                <div class="mt-2">
-                    <button type="button" @onclick="ViewModel.ShareCommand.Bind()" class="designer-button designer-secondary-button-enabled">
-                        Share
-                    </button>
+                <div class="mt-2 text-xl mx-auto text-center">
+                    @ViewModel.Explaination
                 </div>
             </div>
-            <div class="mt-2 text-xl mx-auto text-center">
-                @ViewModel.Explaination
-            </div>
         }
-    </div>
+    }
 </div>
 
 @code

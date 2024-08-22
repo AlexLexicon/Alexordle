@@ -165,6 +165,11 @@ public class HighlightService : IHighlightService
 
     private Highlights CalculateHighlight(char invariantCharacter, int position, bool isCommitted, bool isDesignAnswers)
     {
+        if (invariantCharacter is 'A')
+        {
+
+        }
+
         bool isAlreadyGuessed = IsAlreadyGuessed(invariantCharacter, position);
 
         int? characterCountInAnswer = GetCharacterCountInAnswer(invariantCharacter, isDesignAnswers);
@@ -176,7 +181,7 @@ public class HighlightService : IHighlightService
             {
                 return Highlights.CommittedIllegal;
             }
-            else if (isAlreadyGuessed)
+            else
             {
                 return Highlights.Illegal;
             }

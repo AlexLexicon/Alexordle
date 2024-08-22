@@ -41,9 +41,10 @@ public partial class KeyboardViewModel : ObservableObject, INotificationHandler<
         Row3KeyViewModels = [];
     }
 
-    public Guid? PuzzleId { get; set; }
-    public bool IsSpellChecking { get; set; }
-    public Guid? GuessWordId { get; set; }
+    private Guid? PuzzleId { get; set; }
+    private int Width { get; set; }
+    private bool IsSpellChecking { get; set; }
+    private Guid? GuessWordId { get; set; }
 
     [ObservableProperty]
     private ObservableCollection<KeyViewModel> _row1KeyViewModels;
@@ -57,6 +58,7 @@ public partial class KeyboardViewModel : ObservableObject, INotificationHandler<
     public void Create(Puzzle puzzle)
     {
         PuzzleId = puzzle.Id;
+        Width = puzzle.Width;
         IsSpellChecking = puzzle.IsSpellChecking;
 
         Row1KeyViewModels.Clear();
@@ -159,9 +161,14 @@ public partial class KeyboardViewModel : ObservableObject, INotificationHandler<
 
         if (PuzzleId is not null && GuessWordId is not null)
         {
-            await _letterService.AppendLetterAsync(GuessWordId.Value, character);
+            int count = await _letterService.GetLettersCountAsync(GuessWordId.Value);
 
-            await _mediator.Publish(new StateChangedNotification());
+            if (count < Width)
+            {
+                await _letterService.AppendLetterAsync(GuessWordId.Value, character);
+
+                await _mediator.Publish(new StateChangedNotification());
+            }
         }
     }
 

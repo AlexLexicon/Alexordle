@@ -66,10 +66,10 @@ public partial class GamePageViewModel : ObservableObject, INotificationHandler<
     private MessageViewModel _messageViewModel;
 
     [ObservableProperty]
-    private bool _isDefeat;
+    private bool _isFinished;
 
     [ObservableProperty]
-    private bool _isVictory;
+    private bool _isExplainable;
 
     [ObservableProperty]
     private string? _explaination;
@@ -92,6 +92,10 @@ public partial class GamePageViewModel : ObservableObject, INotificationHandler<
             PuzzleId = await _gameService.LoadPuzzleFromCodeAsync(PuzzleCode);
 
             Puzzle puzzle = await _puzzleService.GetPuzzleAsync(PuzzleId.Value);
+
+            IReadOnlyList<Clue> clues = await _clueService.GetCluesAsync(PuzzleId.Value);
+
+            IsExplainable = clues.Count is > 0;
 
             KeyboardViewModel.Create(puzzle);
 
@@ -125,8 +129,7 @@ public partial class GamePageViewModel : ObservableObject, INotificationHandler<
         {
             State state = await _stateService.GetStateAsync(PuzzleId.Value);
 
-            IsVictory = state.IsVictory;
-            IsDefeat = state.IsDefeat;
+            IsFinished = state.IsVictory || state.IsDefeat;
 
             await _mediator.Publish(new GeneratePalleteNotification(PuzzleId.Value, state, specialMessage));
         }

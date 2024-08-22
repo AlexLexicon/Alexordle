@@ -1,6 +1,7 @@
 ﻿namespace Alexordle.Client.Application.Models;
 public class State
 {
+    public required int TotalAnswers { get; init; }
     public required int TotalGuesses { get; init; }
     public required int MaximumGuesses { get; init; }
     public required int RemainingAnswers { get; init; }

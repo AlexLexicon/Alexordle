@@ -58,6 +58,7 @@ public class StateService : IStateService
 
         return new State
         {
+            TotalAnswers = answersCount,
             TotalGuesses = guesses.Count,
             MaximumGuesses = puzzle.MaximumGuesses,
             RemainingAnswers = remainingAnswers,
