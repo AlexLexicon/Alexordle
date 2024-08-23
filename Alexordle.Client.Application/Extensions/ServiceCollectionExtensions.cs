@@ -8,6 +8,7 @@ public static class ServiceCollectionExtensions
     {
         services.AddSingleton<IAnswerService, AnswerService>();
         services.AddSingleton<IClueService, ClueService>();
+        services.AddSingleton<ISerializationService, CustomSerializationService>();
         services.AddSingleton<IDictionaryService, DictionaryService>();
         services.AddSingleton<IGameService, GameService>();
         services.AddSingleton<IGuessService, GuessService>();

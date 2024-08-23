@@ -10,40 +10,53 @@
             <p>Click <a class="link" @onclick="ViewModel.NavigateToDesignerCommand.Bind()">here</a> to design your own puzzle!</p>
         </div>
     </div>
-
-    <div class="flex flex-col justify-center">
-        <div class="grow">
-            <PalleteView ViewModel="@ViewModel.PalleteViewModel" />
+</div>
+@if (ViewModel.IsFailed)
+{
+    <div class="grid min-h-full place-items-center px-6 py-24 sm:py-32 lg:px-8">
+        <div class="text-center">
+            <h1 class="mt-4 text-3xl font-bold tracking-tight text-gray-900 sm:text-5xl">Uh oh.</h1>
+            <p class="mt-6 text-base leading-7 text-gray-600">Sorry, we couldn’t load the puzzle.</p>
         </div>
     </div>
-</div>
-<div class="mx-auto max-w-lg">
-    <MessageView ViewModel="@ViewModel.MessageViewModel" />
-    @if (!ViewModel.IsFinished)
-    {
-        <div class="flex justify-center">
-            <KeyboardView ViewModel="@ViewModel.KeyboardViewModel" />
-        </div>
-    }
-    else
-    {
-        <div class="flex justify-center">
-            <div>
-                <button type="button" @onclick="ViewModel.ShareCommand.Bind()" class="designer-button designer-secondary-button-enabled">
-                    Share
-                </button>
+}
+else
+{
+    <div class="mx-auto max-w-xs lg:max-w-md">
+        <div class="flex flex-col justify-center">
+            <div class="grow">
+                <PalleteView ViewModel="@ViewModel.PalleteViewModel" />
             </div>
         </div>
-        @if (ViewModel.IsExplainable)
+    </div>
+    <div class="mx-auto max-w-lg">
+        <MessageView ViewModel="@ViewModel.MessageViewModel" />
+        @if (!ViewModel.IsFinished)
         {
             <div class="flex justify-center">
-                <div class="mt-2 text-xl mx-auto text-center">
-                    @ViewModel.Explaination
-                </div>
+                <KeyboardView ViewModel="@ViewModel.KeyboardViewModel" />
             </div>
         }
-    }
-</div>
+        else
+        {
+            <div class="flex justify-center">
+                <div>
+                    <button type="button" @onclick="ViewModel.ShareCommand.Bind()" class="designer-button designer-secondary-button-enabled">
+                        Share
+                    </button>
+                </div>
+            </div>
+            @if (ViewModel.IsExplainable)
+            {
+                <div class="flex justify-center">
+                    <div class="mt-2 text-xl mx-auto text-center">
+                        @ViewModel.Explaination
+                    </div>
+                </div>
+            }
+        }
+    </div>
+}
 
 <FooterView />
 

@@ -9,10 +9,12 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Lexicom.Concentrate.Blazor.WebAssembly.Amenities.Services;
 using MediatR;
+using Microsoft.Extensions.Logging;
 
 namespace Alexordle.Client.Blazor.ViewModels.Game;
 public partial class GamePageViewModel : ObservableObject, INotificationHandler<StateChangedNotification>
 {
+    private readonly ILogger<GamePageViewModel> _logger;
     private readonly IMediator _mediator;
     private readonly IGameService _gameService;
     private readonly INavigationService _navigationService;
@@ -24,6 +26,7 @@ public partial class GamePageViewModel : ObservableObject, INotificationHandler<
     private readonly IClipboardService _clipboardService;
 
     public GamePageViewModel(
+        ILogger<GamePageViewModel> logger,
         IMediator mediator,
         IGameService gameService,
         INavigationService navigationService,
@@ -37,6 +40,7 @@ public partial class GamePageViewModel : ObservableObject, INotificationHandler<
         KeyboardViewModel keyboardViewModel,
         MessageViewModel messageViewModel)
     {
+        _logger = logger;
         _mediator = mediator;
         _gameService = gameService;
         _navigationService = navigationService;
@@ -74,6 +78,9 @@ public partial class GamePageViewModel : ObservableObject, INotificationHandler<
     [ObservableProperty]
     private string? _explaination;
 
+    [ObservableProperty]
+    private bool _isFailed;
+
     [RelayCommand]
     private async Task NavigateToDesignerAsync()
     {
@@ -85,23 +92,34 @@ public partial class GamePageViewModel : ObservableObject, INotificationHandler<
     [RelayCommand]
     private async Task Rendered()
     {
-        if (PuzzleId is null && PuzzleCode is not null)
+        if (!IsFailed && PuzzleId is null && PuzzleCode is not null)
         {
-            PuzzleCodeStore = PuzzleCode;
+            try
+            {
+                IsFailed = false;
 
-            PuzzleId = await _gameService.LoadPuzzleFromCodeAsync(PuzzleCode);
+                PuzzleCodeStore = PuzzleCode;
 
-            Puzzle puzzle = await _puzzleService.GetPuzzleAsync(PuzzleId.Value);
+                PuzzleId = await _gameService.LoadPuzzleFromCodeAsync(PuzzleCode);
 
-            IReadOnlyList<Clue> clues = await _clueService.GetCluesAsync(PuzzleId.Value);
+                Puzzle puzzle = await _puzzleService.GetPuzzleAsync(PuzzleId.Value);
 
-            IsExplainable = clues.Count is > 0;
+                IReadOnlyList<Clue> clues = await _clueService.GetCluesAsync(PuzzleId.Value);
 
-            KeyboardViewModel.Create(puzzle);
+                IsExplainable = clues.Count is > 0;
 
-            await CalculateExplanationAsync();
+                KeyboardViewModel.Create(puzzle);
 
-            await UpdateGameAsync();
+                await CalculateExplanationAsync();
+
+                await UpdateGameAsync();
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Failed to load the game.");
+
+                IsFailed = true;
+            }
         }
     }
 

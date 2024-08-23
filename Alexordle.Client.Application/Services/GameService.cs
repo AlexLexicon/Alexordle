@@ -1,9 +1,8 @@
 ﻿using Alexordle.Client.Application.Database.Entities;
-using System.Text.Json;
+using Alexordle.Client.Application.Exceptions;
+using Alexordle.Client.Application.Models;
 using System.Text;
 using System.Web;
-using Alexordle.Client.Application.Models;
-using Alexordle.Client.Application.Exceptions;
 
 namespace Alexordle.Client.Application.Services;
 public interface IGameService
@@ -16,27 +15,32 @@ public class GameService : IGameService
     private readonly IPuzzleService _puzzleService;
     private readonly IClueService _clueService;
     private readonly IAnswerService _answerService;
+    private readonly ISerializationService _serializationService;
 
     public GameService(
         IPuzzleService puzzleService,
         IClueService clueService,
-        IAnswerService answerService)
+        IAnswerService answerService,
+        ISerializationService serializationService)
     {
         _puzzleService = puzzleService;
         _clueService = clueService;
         _answerService = answerService;
+        _serializationService = serializationService;
     }
 
     public async Task<string> EncodePuzzleAsync(Guid puzzleId)
     {
-        Puzzle puzzle = await _puzzleService.GetPuzzleAsync(puzzleId);
+        var getPuzzleTask = _puzzleService.GetPuzzleAsync(puzzleId);
+        var GetCluesTask = _clueService.GetCluesAsync(puzzleId);
 
-        IReadOnlyList<Clue> clues = await _clueService.GetCluesAsync(puzzle.Id);
+        Puzzle puzzle = await getPuzzleTask;
+        IReadOnlyList < Clue > clues = await GetCluesTask;
 
         var clueStrings = new List<string>();
         foreach (Clue clue in clues)
         {
-            clueStrings.Add(clue.InvariantText);    
+            clueStrings.Add(clue.InvariantText);
         }
 
         IReadOnlyList<Answer> answers = await _answerService.GetAnswersAsync(puzzle.Id);
@@ -56,9 +60,9 @@ public class GameService : IGameService
             IsSpellChecking = puzzle.IsSpellChecking,
         };
 
-        string json = JsonSerializer.Serialize(game);
+        string gameString = await _serializationService.ConvertToStringAsync(game);
 
-        byte[] jsonBytes = Encoding.Default.GetBytes(json);
+        byte[] jsonBytes = Encoding.Default.GetBytes(gameString);
 
         string code = Convert.ToBase64String(jsonBytes);
 
@@ -67,34 +71,43 @@ public class GameService : IGameService
 
     public async Task<Guid> LoadPuzzleFromCodeAsync(string code)
     {
-        string decodedCode = HttpUtility.UrlDecode(code);
-
-        byte[] jsonBytes = Convert.FromBase64String(decodedCode);
-
-        string json = Encoding.Default.GetString(jsonBytes);
-
-        Game? game = JsonSerializer.Deserialize<Game>(json);
-        if (game is null)
+        try
         {
-            throw new JsonNullDeserializationException();
+            string decodedCode = HttpUtility.UrlDecode(code);
+
+            byte[] jsonBytes = Convert.FromBase64String(decodedCode);
+
+            string gameString = Encoding.Default.GetString(jsonBytes);
+
+            var convertFromStringTask = _serializationService.ConvertFromStringAsync(gameString);
+            var createPuzzleTask = _puzzleService.CreatePuzzleAsync();
+
+            Game game = await convertFromStringTask;
+            Puzzle puzzle = await createPuzzleTask;
+
+            var setWidthTask = _puzzleService.SetWidthAsync(puzzle.Id, game.Width);
+            var setMaximumGuessesTask = _puzzleService.SetMaximumGuessesAsync(puzzle.Id, game.MaximumGuesses);
+            var setIsSpellCheckingTask = _puzzleService.SetIsSpellCheckingAsync(puzzle.Id, game.IsSpellChecking);
+
+            await setWidthTask;
+            await setMaximumGuessesTask;
+            await setIsSpellCheckingTask;
+
+            foreach (string clue in game.Clues)
+            {
+                await _clueService.CreateClueAsync(puzzle.Id, clue);
+            }
+
+            foreach (string answer in game.Answers)
+            {
+                await _answerService.CreateAnswerAsync(puzzle.Id, answer);
+            }
+
+            return puzzle.Id;
         }
-
-        Puzzle puzzle = await _puzzleService.CreatePuzzleAsync();
-
-        await _puzzleService.SetWidthAsync(puzzle.Id, game.Width);
-        await _puzzleService.SetMaximumGuessesAsync(puzzle.Id, game.MaximumGuesses);
-        await _puzzleService.SetIsSpellCheckingAsync(puzzle.Id, game.IsSpellChecking);
-
-        foreach (string clue in game.Clues)
+        catch (Exception e)
         {
-            await _clueService.CreateClueAsync(puzzle.Id, clue);
+            throw new InvalidGameException(e);
         }
-
-        foreach (string answer in game.Answers)
-        {
-            await _answerService.CreateAnswerAsync(puzzle.Id, answer);
-        }
-
-        return puzzle.Id;
     }
 }
