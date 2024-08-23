@@ -17,8 +17,8 @@
     <link rel="stylesheet" href="app.css" />
 
     <!-- Blazor -->
-    <!--<base href="/" />--><!-- local -->
-    <base href="/alexordle/" /><!-- publish -->
+    <base href="/" /><!-- local -->
+    <!--<base href="/alexordle/" />--><!-- publish -->
 
 </head>
 
@@ -26,11 +26,16 @@
 
     <!-- Application -->
     <div id="app">
-        <svg class="loading-progress">
-            <circle r="40%" cx="50%" cy="50%" />
-            <circle r="40%" cx="50%" cy="50%" />
-        </svg>
-        <div class="loading-progress-text"></div>
+        <div class="mx-auto text-center my-8">
+            <p class="title">Alexordle</p>
+        </div>
+        <div>
+            <svg class="loading-progress">
+                <circle r="40%" cx="50%" cy="50%" />
+                <circle r="40%" cx="50%" cy="50%" />
+            </svg>
+            <div class="loading-progress-text"></div>
+        </div>
     </div>
 
     <div id="blazor-error-ui">
