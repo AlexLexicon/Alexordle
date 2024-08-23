@@ -17,8 +17,8 @@
     <link rel="stylesheet" href="app.css" />
 
     <!-- Blazor -->
-    <base href="/" /><!-- local -->
-    <!--<base href="/alexordle/" />--><!-- publish -->
+    <!--<base href="/" />--><!-- local -->
+    <base href="/alexordle/" /><!-- publish -->
 
 </head>
 
@@ -26,10 +26,9 @@
 
     <!-- Application -->
     <div id="app">
-        <div class="mx-auto text-center my-8">
-            <p class="title">Alexordle</p>
-        </div>
-        <div>
+        <p class="title title-size text-center mt-2 lg:mt-4">Alexordle</p>
+
+        <div style="position: absolute; width: 100%">
             <svg class="loading-progress">
                 <circle r="40%" cx="50%" cy="50%" />
                 <circle r="40%" cx="50%" cy="50%" />
@@ -39,8 +38,8 @@
     </div>
 
     <div id="blazor-error-ui">
-        An unhandled error has occurred.
-        <a href="" class="reload">Reload</a>
+        Uh oh. something went wrong!
+        <a href="" class="reload">Click here to reload the page.</a>
         <a class="dismiss">🗙</a>
     </div>
 

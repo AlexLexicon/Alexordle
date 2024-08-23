@@ -159,8 +159,6 @@ public partial class DesignerPageViewModel : ObservableObject, INotificationHand
     [RelayCommand]
     private async Task LoadedAsync()
     {
-        throw new Exception();
-
         await _puzzleService.DeleteAllPuzzlesAsync();
 
         Puzzle puzzle = await _puzzleService.CreatePuzzleAsync();
