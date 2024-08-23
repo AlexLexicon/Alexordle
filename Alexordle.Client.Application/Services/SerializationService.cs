@@ -65,6 +65,8 @@ public class CustomSerializationService : ISerializationService
 
             string code = string.Join(DELIMITER, maximumGuesses, width, isSpellChecking, clues, answers);
 
+            code += DELIMITER; //we append the delimiter at the end to better detect malformed codes.
+
             return Task.FromResult(code);
         }
         catch (Exception e)
@@ -78,6 +80,11 @@ public class CustomSerializationService : ISerializationService
         try
         {
             string[] parts = gameString.Split(DELIMITER);
+
+            if (parts.Length is not 6)
+            {
+                throw new Exception("too many or too few parts.");
+            }
 
             int maximumGuesses = int.Parse(parts[0]);
             int width = int.Parse(parts[1]);

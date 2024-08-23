@@ -51,14 +51,7 @@ public class ShareService : IShareService
             }
         }
 
-        var getUrlTask = _urlService.GetUrlAsync();
-        var getPuzzleUrlTask = _urlService.GetPuzzleUrlAsync(code);
-
-        string url = await getUrlTask;
-        string puzzleUrl = await getPuzzleUrlTask;
-
-        share += $"{url}{Environment.NewLine}";
-        share += $"play this puzzle here: {puzzleUrl}";
+        share += await _urlService.GetPuzzleUrlAsync(code);
 
         return share;
     }
@@ -80,7 +73,7 @@ public class ShareService : IShareService
     {
         if (cell is null)
         {
-            return "⬳";
+            return "🔹";
         }
         else if (cell.Highlight.IsIllegal())
         {
