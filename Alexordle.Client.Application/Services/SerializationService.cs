@@ -58,7 +58,7 @@ public class CustomSerializationService : ISerializationService
             string clues = string.Join(DELIMITER_ARRAY, game.Clues);
             string answers = string.Join(DELIMITER_ARRAY, game.Answers);
 
-            if (ContainsSpecialCharacters(maximumGuesses, width, isSpellChecking, clues, answers))
+            if (ContainsSpecialCharacters(maximumGuesses, width, isSpellChecking) || ContainsSpecialCharacters(game.Clues) || ContainsSpecialCharacters(game.Answers))
             {
                 throw new Exception($"The special chracters '{DELIMITER}', '{DELIMITER_ARRAY}' are reserved and cannot be included in the game strings.");
             }
@@ -114,9 +114,10 @@ public class CustomSerializationService : ISerializationService
         }
     }
 
-    private bool ContainsSpecialCharacters(params string[] parts)
+    private bool ContainsSpecialCharacters(params string[] parts) => ContainsSpecialCharacters(partsEnumerable: parts);
+    private bool ContainsSpecialCharacters(IEnumerable<string> partsEnumerable)
     {
-        foreach (string part in parts)
+        foreach (string part in partsEnumerable)
         {
             if (part.Contains(DELIMITER) || part.Contains(DELIMITER_ARRAY))
             {
