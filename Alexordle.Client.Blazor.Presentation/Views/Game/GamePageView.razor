@@ -4,9 +4,10 @@
 
 <div class="mx-auto max-w-xs lg:max-w-md">
     <div class="text-center my-8">
-        <p class="font-bold tracking-tight text-gray-900 text-4xl lg:text-6xl">Alexordle</p>
-        <div class="mt-2">
-            <a class="text-cyan-700 font-medium text-base lg:text-lg cursor-pointer" @onclick="ViewModel.NavigateToDesignerCommand.Bind()">Click here to design your own puzzle!</a>
+        <p class="font-bold tracking-tight text-emerald-900 text-4xl lg:text-6xl">Alexordle</p>
+        <div class="mt-2 text-sm text-gray-600 lg:text-base">
+            <p>Custom word games made by anyone.</p>
+            <p>Click <a class="link" @onclick="ViewModel.NavigateToDesignerCommand.Bind()">here</a> to design your own puzzle!</p>
         </div>
     </div>
 
@@ -43,6 +44,8 @@
         }
     }
 </div>
+
+<FooterView />
 
 @code
 {
