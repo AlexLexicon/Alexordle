@@ -109,7 +109,7 @@ public partial class PalleteViewModel : ObservableObject, INotificationHandler<G
                 {
                     var rowViewModel = _viewModelFactory.Create<RowViewModel, Row>(row);
 
-                    await rowViewModel.CreateAsync();
+                    await rowViewModel.CreateAsync(pallete.Width);
 
                     ClueRowViewModels.Add(rowViewModel);
                 }
@@ -118,7 +118,7 @@ public partial class PalleteViewModel : ObservableObject, INotificationHandler<G
                 {
                     var rowViewModel = _viewModelFactory.Create<RowViewModel, Row>(row);
 
-                    await rowViewModel.CreateAsync();
+                    await rowViewModel.CreateAsync(pallete.Width);
                     RowViewModels.Add(rowViewModel);
                 }
 

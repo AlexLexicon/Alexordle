@@ -27,7 +27,7 @@ public partial class RowViewModel : ObservableObject
     [ObservableProperty]
     private string? _annotation;
 
-    public async Task CreateAsync()
+    public async Task CreateAsync(int width)
     {
         Annotation = Row.Annotation switch
         {
@@ -40,7 +40,7 @@ public partial class RowViewModel : ObservableObject
         {
             var cellViewModel = _viewModelFactory.Create<CellViewModel, Cell>(cell);
 
-            await cellViewModel.CreateAsync();
+            await cellViewModel.CreateAsync(width);
 
             CellViewModels.Add(cellViewModel);
         }

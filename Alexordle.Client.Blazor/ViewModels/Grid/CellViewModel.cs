@@ -25,8 +25,13 @@ public partial class CellViewModel : ObservableObject
     [ObservableProperty]
     private Highlights _highlight;
 
-    public async Task CreateAsync()
+    [ObservableProperty]
+    private int _width;
+
+    public async Task CreateAsync(int width)
     {
+        Width = width;
+
         Text = Cell.IsEmpty ? string.Empty : Cell.Text;
         Highlight = Cell.IsObscured ? Highlights.CommittedIncorrect : Cell.Highlight;
 
