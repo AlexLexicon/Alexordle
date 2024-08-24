@@ -78,9 +78,6 @@ public partial class GamePageViewModel : ObservableObject, INotificationHandler<
     private bool _isFinished;
 
     [ObservableProperty]
-    private bool _isExplainable;
-
-    [ObservableProperty]
     private string? _explaination;
 
     [ObservableProperty]
@@ -112,8 +109,6 @@ public partial class GamePageViewModel : ObservableObject, INotificationHandler<
                 Puzzle puzzle = await _puzzleService.GetPuzzleAsync(PuzzleId.Value);
 
                 IReadOnlyList<Clue> clues = await _clueService.GetCluesAsync(PuzzleId.Value);
-
-                IsExplainable = clues.Count is > 0;
 
                 KeyboardViewModel.Create(puzzle);
 
@@ -182,7 +177,10 @@ public partial class GamePageViewModel : ObservableObject, INotificationHandler<
                 explaination += clues[i].InvariantText;
             }
 
-            explaination += " » ";
+            if (clues.Count > 0)
+            {
+                explaination += " » ";
+            }
 
             IReadOnlyList<Answer> answers = await getAnswersTask;
             for (int i = 0; i < answers.Count; i++)

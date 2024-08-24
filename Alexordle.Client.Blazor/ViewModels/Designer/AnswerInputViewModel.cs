@@ -64,17 +64,20 @@ public partial class AnswerInputViewModel : AbstractInputViewModel
 
     protected override async Task RefreshDesignerAsync()
     {
-        await base.RefreshDesignerAsync();
-
-        if (Text is not null)
+        if (!IsRemoved)
         {
-            Answer answer = await _answerService.CreateAnswerAsync(PuzzleId, Text);
+            await base.RefreshDesignerAsync();
 
-            AnswerWordId = answer.WordId;
+            if (Text is not null)
+            {
+                Answer answer = await _answerService.CreateAnswerAsync(PuzzleId, Text);
 
-            await WriteGuessAsync();
+                AnswerWordId = answer.WordId;
 
-            await TryCommitAsync();
+                await WriteGuessAsync();
+
+                await TryCommitAsync();
+            }
         }
     }
 

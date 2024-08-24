@@ -30,6 +30,7 @@ public abstract partial class AbstractInputViewModel : ObservableObject, INotifi
     private bool IsChanging { get; set; }
     private long CurrentChagedUtcTick { get; set; }
     private long LastChangedUtcTick { get; set; }
+    protected bool IsRemoved { get; set; }
 
     protected Guid PuzzleId { get; }
 
@@ -80,6 +81,8 @@ public abstract partial class AbstractInputViewModel : ObservableObject, INotifi
     [RelayCommand]
     protected virtual async Task RemoveAsync()
     {
+        IsRemoved = true;
+
         await DeleteAsync();
 
         await _mediator.Publish(GetRemoveInputNotification());

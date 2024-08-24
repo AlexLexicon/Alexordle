@@ -5,13 +5,16 @@ using Alexordle.Client.Blazor.Validations.RuleSets;
 using Lexicom.DependencyInjection.Primitives;
 using Lexicom.Validation;
 using MediatR;
+using Microsoft.Extensions.Logging;
 
 namespace Alexordle.Client.Blazor.ViewModels.Designer;
 public partial class ClueInputViewModel : AbstractInputViewModel
 {
+    private readonly ILogger<ClueInputViewModel> _logger;
     private readonly IClueService _clueService;
 
     public ClueInputViewModel(
+        ILogger<ClueInputViewModel> logger,
         Guid puzzleId,
         IMediator mediator,
         ITimeProvider timeProvider,
@@ -19,6 +22,7 @@ public partial class ClueInputViewModel : AbstractInputViewModel
         IClueService clueService) : base(puzzleId, mediator, timeProvider, answerTextRuleSetValidator)
     {
         _clueService = clueService;
+        _logger = logger;
     }
 
     private Guid? ClueWordId { get; set; }
@@ -32,6 +36,8 @@ public partial class ClueInputViewModel : AbstractInputViewModel
     {
         if (ClueWordId is not null)
         {
+            _logger.LogInformation("Delete clue {clueId}", ClueWordId);
+
             await _clueService.DeleteClueAsync(ClueWordId.Value);
 
             ClueWordId = null;
@@ -45,13 +51,18 @@ public partial class ClueInputViewModel : AbstractInputViewModel
 
     protected override async Task RefreshDesignerAsync()
     {
-        await base.RefreshDesignerAsync();
-
-        if (Text is not null)
+        if (!IsRemoved)
         {
-            Clue clue = await _clueService.CreateClueAsync(PuzzleId, Text);
+            await base.RefreshDesignerAsync();
 
-            ClueWordId = clue.WordId;
+            if (Text is not null)
+            {
+                Clue clue = await _clueService.CreateClueAsync(PuzzleId, Text);
+
+                ClueWordId = clue.WordId;
+
+                _logger.LogInformation("create clue {clueId}", ClueWordId);
+            }
         }
     }
 }
