@@ -101,6 +101,8 @@ public partial class GamePageViewModel : ObservableObject, INotificationHandler<
         {
             try
             {
+                PalleteViewModel.IsReload = true;
+
                 IsFailed = false;
 
                 PuzzleCodeStore = PuzzleCode;

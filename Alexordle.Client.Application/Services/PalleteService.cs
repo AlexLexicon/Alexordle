@@ -42,7 +42,7 @@ public class PalleteService : IPalleteService
         var clueRows = new List<Row>();
         for (int index = 0; index < clues.Count; index++)
         {
-            Row row = await GenerateRowAsync(highlightService, puzzle.Width, clues[index], state, false, isDesignAnswers: false);
+            Row row = await GenerateRowAsync(highlightService, -1, puzzle.Width, clues[index], state, isDesignAnswers: false);
 
             clueRows.Add(row);
         }
@@ -60,9 +60,7 @@ public class PalleteService : IPalleteService
             {
                 Guess guess = guesses[index];
 
-                bool isLast = index == totalRows - 1;
-
-                row = await GenerateRowAsync(highlightService, puzzle.Width, guess, state, isLast, isDesigner);
+                row = await GenerateRowAsync(highlightService, index, puzzle.Width, guess, state, isDesigner);
             }
             else
             {
@@ -80,11 +78,16 @@ public class PalleteService : IPalleteService
         };
     }
 
-    private async Task<Row> GenerateRowAsync(IHighlightService highlightService, int width, AbstractWord word, State state, bool isLast, bool isDesignAnswers)
+    private async Task<Row> GenerateRowAsync(IHighlightService highlightService, int row, int width, AbstractWord word, State state, bool isDesignAnswers)
     {
         IReadOnlyList<Letter> letters = await _letterService.GetLettersAsync(word.WordId);
 
-        Annotations annotation = isLast && state.IsBonus ? Annotations.Bonus : Annotations.None;
+        Annotations annotation = Annotations.None;
+        if (row >= state.MaximumGuesses && !isDesignAnswers)
+        {
+            annotation = Annotations.Bonus;
+        }
+
         var cells = new List<Cell>();
         for (int position = 0; position < width; position++)
         {

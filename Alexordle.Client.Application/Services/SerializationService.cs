@@ -89,10 +89,18 @@ public class CustomSerializationService : ISerializationService
             int maximumGuesses = int.Parse(parts[0]);
             int width = int.Parse(parts[1]);
             bool isSpellChecking = int.Parse(parts[2]) is 1;
-            string[] clues = parts[3].Split(DELIMITER_ARRAY);
-            string[] answers = parts[4].Split(DELIMITER_ARRAY);
+            string[] cluesArray = parts[3].Split(DELIMITER_ARRAY);
+            string[] answersArray = parts[4].Split(DELIMITER_ARRAY);
 
-            if (answers.Length is <= 0)
+            List<string> clues = cluesArray
+                .Where(c => !string.IsNullOrWhiteSpace(c))
+                .ToList();
+
+            List<string> answers = answersArray
+                .Where(a => !string.IsNullOrWhiteSpace(a))
+                .ToList();
+
+            if (answers.Count is <= 0)
             {
                 throw new Exception("game string was malformed, no answers.");
             }
@@ -102,8 +110,8 @@ public class CustomSerializationService : ISerializationService
                 MaximumGuesses = maximumGuesses,
                 Width = width,
                 IsSpellChecking = isSpellChecking,
-                Clues = clues.ToList(),
-                Answers = answers.ToList(),
+                Clues = clues,
+                Answers = answers,
             };
 
             return Task.FromResult(game);

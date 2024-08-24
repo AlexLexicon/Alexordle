@@ -198,6 +198,8 @@ public partial class DesignerPageViewModel : ObservableObject, INotificationHand
     [RelayCommand]
     private async Task LoadedAsync()
     {
+        IsPlayable = false;
+
         await _puzzleService.DeleteAllPuzzlesAsync();
 
         Puzzle puzzle = await _puzzleService.CreatePuzzleAsync();

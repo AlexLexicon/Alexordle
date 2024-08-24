@@ -3,6 +3,7 @@ using Alexordle.Client.Application.Services;
 using Alexordle.Client.Blazor.Models;
 using Alexordle.Client.Blazor.Notifications;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Lexicom.Concentrate.Blazor.WebAssembly.Amenities.Notifications;
 using Lexicom.Mvvm;
 using MediatR;
@@ -35,6 +36,7 @@ public partial class PalleteViewModel : ObservableObject, INotificationHandler<G
         RowViewModels = [];
     }
 
+    public bool IsReload { get; set; }
     public bool IsLoadable { get; set; }
     private bool IsGenerating { get; set; }
     private long LastGeneratedUtcTick { get; set; }
@@ -74,6 +76,7 @@ public partial class PalleteViewModel : ObservableObject, INotificationHandler<G
     {
         if (GeneratePalleteNotification is not null && !IsGenerating)
         {
+            IsReload = false;
             IsGenerating = true;
 
             await GenerateAsync(GeneratePalleteNotification.PuzzleId, GeneratePalleteNotification.State, GeneratePalleteNotification.SpecialMessage, GeneratePalleteNotification.IsDesigner);
@@ -86,36 +89,45 @@ public partial class PalleteViewModel : ObservableObject, INotificationHandler<G
         }
     }
 
+    [RelayCommand]
+    private void Loaded()
+    {
+        IsLoading = true;
+    }
+
     private async Task GenerateAsync(Guid puzzleId, State? state, SpecialMessages? specialMessage, bool isDesigner)
     {
-        ClueRowViewModels.Clear();
-        RowViewModels.Clear();
-        state ??= await _stateService.GetStateAsync(puzzleId);
-        Pallete pallete = await _palleteService.GeneratePalleteAsync(puzzleId, state, isDesigner);
-
-        Invalid = pallete.Width is <= 0;
-        if (!Invalid)
+        if (!IsReload)
         {
-            Columns = $"{pallete.Width + 2}";
+            ClueRowViewModels.Clear();
+            RowViewModels.Clear();
+            state ??= await _stateService.GetStateAsync(puzzleId);
+            Pallete pallete = await _palleteService.GeneratePalleteAsync(puzzleId, state, isDesigner);
 
-            foreach (Row row in pallete.Clues)
+            Invalid = pallete.Width is <= 0;
+            if (!Invalid)
             {
-                var rowViewModel = _viewModelFactory.Create<RowViewModel, Row>(row);
+                Columns = $"{pallete.Width + 2}";
 
-                await rowViewModel.CreateAsync();
+                foreach (Row row in pallete.Clues)
+                {
+                    var rowViewModel = _viewModelFactory.Create<RowViewModel, Row>(row);
 
-                ClueRowViewModels.Add(rowViewModel);
+                    await rowViewModel.CreateAsync();
+
+                    ClueRowViewModels.Add(rowViewModel);
+                }
+
+                foreach (Row row in pallete.Rows)
+                {
+                    var rowViewModel = _viewModelFactory.Create<RowViewModel, Row>(row);
+
+                    await rowViewModel.CreateAsync();
+                    RowViewModels.Add(rowViewModel);
+                }
+
+                await _mediator.Publish(new MessageNotification(puzzleId, state, specialMessage));
             }
-
-            foreach (Row row in pallete.Rows)
-            {
-                var rowViewModel = _viewModelFactory.Create<RowViewModel, Row>(row);
-
-                await rowViewModel.CreateAsync();
-                RowViewModels.Add(rowViewModel);
-            }
-
-            await _mediator.Publish(new MessageNotification(puzzleId, state, specialMessage));
         }
     }
 }
