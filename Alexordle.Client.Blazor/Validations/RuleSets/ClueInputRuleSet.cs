@@ -18,7 +18,6 @@ public class ClueInputRuleSet : AbstractRuleSet<string?>
             .NotNull()
             .NotSimplyEmpty()
             .NotAnyWhiteSpace()
-            .Letters()
             .Length(_ => _designerWidthValidation.CurrentWidth);
     }
 }

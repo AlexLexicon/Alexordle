@@ -77,4 +77,6 @@ builder.Services.AddDbContextFactory<AlexordleDbContext>(options =>
 
 var app = builder.Build();
 
+app.UsePeriodicNotificator(TimeSpan.FromSeconds(0.10));
+
 await app.RunAsync();

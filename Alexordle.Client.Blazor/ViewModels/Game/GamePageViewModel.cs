@@ -8,6 +8,7 @@ using Alexordle.Client.Blazor.ViewModels.Keyboard;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Lexicom.Concentrate.Blazor.WebAssembly.Amenities.Services;
+using Lexicom.DependencyInjection.Primitives;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -24,6 +25,7 @@ public partial class GamePageViewModel : ObservableObject, INotificationHandler<
     private readonly IClueService _clueService;
     private readonly IShareService _shareService;
     private readonly IClipboardService _clipboardService;
+    private readonly ITimeProvider _timeProvider;
 
     public GamePageViewModel(
         ILogger<GamePageViewModel> logger,
@@ -36,9 +38,10 @@ public partial class GamePageViewModel : ObservableObject, INotificationHandler<
         IClueService clueService,
         IShareService shareService,
         IClipboardService clipboardService,
-        PalleteViewModel palleteViewModel,
+        ITimeProvider timeProvider,
         KeyboardViewModel keyboardViewModel,
-        MessageViewModel messageViewModel)
+        MessageViewModel messageViewModel,
+        PalleteViewModel palleteViewModel)
     {
         _logger = logger;
         _mediator = mediator;
@@ -50,10 +53,12 @@ public partial class GamePageViewModel : ObservableObject, INotificationHandler<
         _clueService = clueService;
         _shareService = shareService;
         _clipboardService = clipboardService;
+        _timeProvider = timeProvider;
 
-        PalleteViewModel = palleteViewModel;
         KeyboardViewModel = keyboardViewModel;
         MessageViewModel = messageViewModel;
+        PalleteViewModel = palleteViewModel;
+        PalleteViewModel.IsLoadable = false;
     }
 
     public string? PuzzleCode { get; set; }
@@ -149,7 +154,9 @@ public partial class GamePageViewModel : ObservableObject, INotificationHandler<
 
             IsFinished = state.IsVictory || state.IsDefeat;
 
-            await _mediator.Publish(new GeneratePalleteNotification(PuzzleId.Value, state, specialMessage));
+            long tick = _timeProvider.GetUtcNow().Ticks;
+
+            await _mediator.Publish(new GeneratePalleteNotification(tick, PuzzleId.Value, state, specialMessage));
         }
     }
 

@@ -2,6 +2,7 @@
 using Alexordle.Client.Application.Services;
 using Alexordle.Client.Blazor.Notifications;
 using Alexordle.Client.Blazor.Validations.RuleSets;
+using Lexicom.DependencyInjection.Primitives;
 using Lexicom.Validation;
 using MediatR;
 
@@ -13,8 +14,9 @@ public partial class ClueInputViewModel : AbstractInputViewModel
     public ClueInputViewModel(
         Guid puzzleId,
         IMediator mediator,
+        ITimeProvider timeProvider,
         IRuleSetValidator<AnswerInputRuleSet, string?> answerTextRuleSetValidator,
-        IClueService clueService) : base(puzzleId, mediator, answerTextRuleSetValidator)
+        IClueService clueService) : base(puzzleId, mediator, timeProvider, answerTextRuleSetValidator)
     {
         _clueService = clueService;
     }

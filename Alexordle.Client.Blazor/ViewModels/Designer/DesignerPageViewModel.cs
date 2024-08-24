@@ -7,14 +7,16 @@ using Alexordle.Client.Blazor.Validations.RuleSets;
 using Alexordle.Client.Blazor.ViewModels.Grid;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Lexicom.Concentrate.Blazor.WebAssembly.Amenities.Notifications;
 using Lexicom.Concentrate.Blazor.WebAssembly.Amenities.Services;
+using Lexicom.DependencyInjection.Primitives;
 using Lexicom.Mvvm;
 using Lexicom.Validation;
 using MediatR;
 using System.Collections.ObjectModel;
 
 namespace Alexordle.Client.Blazor.ViewModels.Designer;
-public partial class DesignerPageViewModel : ObservableObject, INotificationHandler<RefreshDesignerNotification>, INotificationHandler<RemoveClueInputNotification>, INotificationHandler<RemoveAnswerInputNotification>
+public partial class DesignerPageViewModel : ObservableObject, INotificationHandler<RefreshDesignerNotification>, INotificationHandler<RemoveClueInputNotification>, INotificationHandler<RemoveAnswerInputNotification>, INotificationHandler<PeriodicTickNotification>
 {
     private readonly IMediator _mediator;
     private readonly IViewModelFactory _viewModelFactory;
@@ -23,6 +25,7 @@ public partial class DesignerPageViewModel : ObservableObject, INotificationHand
     private readonly IGameService _gameService;
     private readonly IUrlService _urlService;
     private readonly INavigationService _navigationService;
+    private readonly ITimeProvider _timeProvider;
     private readonly DesignerAnswersCountValidation _designerAnswersCountValidation;
     private readonly DesignerWidthValidation _designerWidthValidation;
 
@@ -34,6 +37,7 @@ public partial class DesignerPageViewModel : ObservableObject, INotificationHand
         IGameService gameService,
         IUrlService urlService,
         INavigationService navigationService,
+        ITimeProvider timeProvider,
         DesignerAnswersCountValidation designerAnswersCountValidation,
         DesignerWidthValidation designerWidthValidation,
         PalleteViewModel palleteViewModel,
@@ -49,6 +53,7 @@ public partial class DesignerPageViewModel : ObservableObject, INotificationHand
         _navigationService = navigationService;
         _designerAnswersCountValidation = designerAnswersCountValidation;
         _designerWidthValidation = designerWidthValidation;
+        _timeProvider = timeProvider;
 
         PalleteViewModel = palleteViewModel;
         WidthTextRuleSetValidator = widthTextRuleSetValidator;
@@ -56,11 +61,28 @@ public partial class DesignerPageViewModel : ObservableObject, INotificationHand
 
         ClueInputViewModels = [];
         AnswerInputViewModels = [];
+        DesignerState = new State
+        {
+            TotalAnswers = 0,
+            TotalGuesses = 0,
+            MaximumGuesses = 0,
+            RemainingAnswers = 0,
+            RemainingGuesses = 0,
+            IsBonus = false,
+            IsDefeat = false,
+            IsVictory = false,
+            CorrectGuessIds = new HashSet<Guid>(),
+        };
     }
 
     private Guid PuzzleId { get; set; }
     private string? GameUrl { get; set; }
     private bool IsDisposed { get; set; }
+    private State DesignerState { get; }
+    private bool IsChanging { get; set; }
+    private long CurrentChagedUtcTick { get; set; }
+    private long LastChangedUtcTick { get; set; }
+
 
     [ObservableProperty]
     private bool _isSpellChecking;
@@ -95,6 +117,13 @@ public partial class DesignerPageViewModel : ObservableObject, INotificationHand
     [ObservableProperty]
     private bool _isPlayable;
 
+    public async Task RedirectAsync(string puzzleCode)
+    {
+        string url = await _urlService.GetPuzzleUrlAsync(puzzleCode);
+
+        await _navigationService.NavigateToUrlAsync(url);
+    }
+
     public async Task Handle(RefreshDesignerNotification notification, CancellationToken cancellationToken)
     {
         if (!IsDisposed)
@@ -125,20 +154,37 @@ public partial class DesignerPageViewModel : ObservableObject, INotificationHand
         }
     }
 
-    [RelayCommand]
-    private async Task WidthTextChangedAsync()
+    public async Task Handle(PeriodicTickNotification notification, CancellationToken cancellationToken)
     {
-        await UpdateWidthAsync();
+        if (!IsChanging && CurrentChagedUtcTick > LastChangedUtcTick)
+        {
+            IsChanging = true;
 
-        await RefreshDesignerAsync();
+            await UpdateWidthAsync();
+            await UpdateMaximumGuessesAsync();
+
+            await RefreshDesignerAsync();
+
+            LastChangedUtcTick = notification.UtcNow.Ticks;
+
+            IsChanging = false;
+        }
     }
 
     [RelayCommand]
-    private async Task MaximumGuessesTextChangedAsync()
+    private Task WidthTextChangedAsync()
     {
-        await UpdateMaximumGuessesAsync();
+        CurrentChagedUtcTick = _timeProvider.GetUtcNow().UtcTicks;
 
-        await RefreshDesignerAsync();
+        return Task.CompletedTask;
+    }
+
+    [RelayCommand]
+    private Task MaximumGuessesTextChangedAsync()
+    {
+        CurrentChagedUtcTick = _timeProvider.GetUtcNow().UtcTicks;
+
+        return Task.CompletedTask;
     }
 
     [RelayCommand]
@@ -147,13 +193,6 @@ public partial class DesignerPageViewModel : ObservableObject, INotificationHand
         await UpdateIsSpellCheckingAsync();
 
         await RefreshDesignerAsync();
-    }
-
-    public async Task RedirectAsync(string puzzleCode)
-    {
-        string url = await _urlService.GetPuzzleUrlAsync(puzzleCode);
-
-        await _navigationService.NavigateToUrlAsync(url);
     }
 
     [RelayCommand]
@@ -295,20 +334,9 @@ public partial class DesignerPageViewModel : ObservableObject, INotificationHand
             GameUrl = await _urlService.GetPuzzleUrlAsync(code);
         }
 
-        var state = new State
-        {
-            TotalAnswers = 0,
-            TotalGuesses = 0,
-            MaximumGuesses = 0,
-            RemainingAnswers = 0,
-            RemainingGuesses = 0,
-            IsBonus = false,
-            IsDefeat = false,
-            IsVictory = false,
-            CorrectGuessIds = new HashSet<Guid>(),
-        };
+        long tick = _timeProvider.GetUtcNow().Ticks;
 
-        await _mediator.Publish(new GeneratePalleteNotification(PuzzleId, state, IsDesigner: true));
+        await _mediator.Publish(new GeneratePalleteNotification(tick, PuzzleId, DesignerState, IsDesigner: true));
     }
 
     private bool GetIsPlayable()

@@ -1,25 +1,31 @@
 ﻿using Alexordle.Client.Application.Models;
 using Alexordle.Client.Application.Services;
+using Alexordle.Client.Blazor.Models;
 using Alexordle.Client.Blazor.Notifications;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Lexicom.Concentrate.Blazor.WebAssembly.Amenities.Notifications;
 using Lexicom.Mvvm;
 using MediatR;
+using Microsoft.Extensions.Logging;
 using System.Collections.ObjectModel;
 
 namespace Alexordle.Client.Blazor.ViewModels.Grid;
-public partial class PalleteViewModel : ObservableObject, INotificationHandler<GeneratePalleteNotification>
+public partial class PalleteViewModel : ObservableObject, INotificationHandler<GeneratePalleteNotification>, INotificationHandler<PeriodicTickNotification>
 {
+    private readonly ILogger<PalleteViewModel> _logger;
     private readonly IMediator _mediator;
     private readonly IViewModelFactory _viewModelFactory;
     private readonly IPalleteService _palleteService;
     private readonly IStateService _stateService;
 
     public PalleteViewModel(
+        ILogger<PalleteViewModel> logger,
         IViewModelFactory viewModelFactory,
         IPalleteService palleteService,
         IStateService stateService,
         IMediator mediator)
     {
+        _logger = logger;
         _mediator = mediator;
         _viewModelFactory = viewModelFactory;
         _palleteService = palleteService;
@@ -29,6 +35,11 @@ public partial class PalleteViewModel : ObservableObject, INotificationHandler<G
         RowViewModels = [];
     }
 
+    public bool IsLoadable { get; set; }
+    private bool IsGenerating { get; set; }
+    private long LastGeneratedUtcTick { get; set; }
+    private GeneratePalleteNotification? GeneratePalleteNotification { get; set; }
+
     [ObservableProperty]
     private ObservableCollection<RowViewModel> _clueRowViewModels;
 
@@ -36,37 +47,75 @@ public partial class PalleteViewModel : ObservableObject, INotificationHandler<G
     private ObservableCollection<RowViewModel> _rowViewModels;
 
     [ObservableProperty]
+    public bool _isLoading;
+
+    [ObservableProperty]
+    private bool _invalid;
+
+    [ObservableProperty]
     private string? _columns;
 
-    public async Task Handle(GeneratePalleteNotification notification, CancellationToken cancellationToken)
+    public Task Handle(GeneratePalleteNotification notification, CancellationToken cancellationToken)
+    {
+        if (notification.InitiatedUtcTick > LastGeneratedUtcTick)
+        {
+            if (IsLoadable)
+            {
+                IsLoading = true;
+            }
+
+            GeneratePalleteNotification = notification;
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public async Task Handle(PeriodicTickNotification notification, CancellationToken cancellationToken)
+    {
+        if (GeneratePalleteNotification is not null && !IsGenerating)
+        {
+            IsGenerating = true;
+
+            await GenerateAsync(GeneratePalleteNotification.PuzzleId, GeneratePalleteNotification.State, GeneratePalleteNotification.SpecialMessage, GeneratePalleteNotification.IsDesigner);
+
+            LastGeneratedUtcTick = notification.UtcNow.Ticks;
+            GeneratePalleteNotification = null;
+
+            IsGenerating = false;
+            IsLoading = false;
+        }
+    }
+
+    private async Task GenerateAsync(Guid puzzleId, State? state, SpecialMessages? specialMessage, bool isDesigner)
     {
         ClueRowViewModels.Clear();
         RowViewModels.Clear();
+        state ??= await _stateService.GetStateAsync(puzzleId);
+        Pallete pallete = await _palleteService.GeneratePalleteAsync(puzzleId, state, isDesigner);
 
-        State? state = notification.State ?? await _stateService.GetStateAsync(notification.PuzzleId);
-
-        Pallete pallete = await _palleteService.GeneratePalleteAsync(notification.PuzzleId, state, notification.IsDesigner);
-
-        Columns = $"{pallete.Width + 2}";
-
-        foreach (Row row in pallete.Clues)
+        Invalid = pallete.Width is <= 0;
+        if (!Invalid)
         {
-            var rowViewModel = _viewModelFactory.Create<RowViewModel, Row>(row);
+            Columns = $"{pallete.Width + 2}";
 
-            await rowViewModel.CreateAsync();
+            foreach (Row row in pallete.Clues)
+            {
+                var rowViewModel = _viewModelFactory.Create<RowViewModel, Row>(row);
 
-            ClueRowViewModels.Add(rowViewModel);
+                await rowViewModel.CreateAsync();
+
+                ClueRowViewModels.Add(rowViewModel);
+            }
+
+            foreach (Row row in pallete.Rows)
+            {
+                var rowViewModel = _viewModelFactory.Create<RowViewModel, Row>(row);
+
+                await rowViewModel.CreateAsync();
+                RowViewModels.Add(rowViewModel);
+            }
+
+            await _mediator.Publish(new MessageNotification(puzzleId, state, specialMessage));
         }
-
-        foreach (Row row in pallete.Rows)
-        {
-            var rowViewModel = _viewModelFactory.Create<RowViewModel, Row>(row);
-
-            await rowViewModel.CreateAsync();
-
-            RowViewModels.Add(rowViewModel);
-        }
-
-        await _mediator.Publish(new MessageNotification(notification.PuzzleId, state, notification.SpecialMessage), cancellationToken);
     }
 }
