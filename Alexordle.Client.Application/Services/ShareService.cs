@@ -35,13 +35,16 @@ public class ShareService : IShareService
             share += GenerateRow(clue);
         }
 
-        for (int i = 0; i < pallete.Width; i++)
+        if (pallete.Clues.Count is > 0)
         {
-            string block = GetBlock(null);
+            for (int i = 0; i < pallete.Width; i++)
+            {
+                string block = GetBlock(null);
 
-            share += block;
+                share += block;
+            }
+            share += Environment.NewLine;
         }
-        share += Environment.NewLine;
 
         foreach (Row row in pallete.Rows)
         {

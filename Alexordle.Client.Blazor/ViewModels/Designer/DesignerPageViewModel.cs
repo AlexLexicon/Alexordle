@@ -77,7 +77,6 @@ public partial class DesignerPageViewModel : ObservableObject, INotificationHand
 
     private Guid PuzzleId { get; set; }
     private string? GameUrl { get; set; }
-    private bool IsDisposed { get; set; }
     private State DesignerState { get; }
     private bool IsChanging { get; set; }
     private long CurrentChagedUtcTick { get; set; }
@@ -126,32 +125,23 @@ public partial class DesignerPageViewModel : ObservableObject, INotificationHand
 
     public async Task Handle(RefreshDesignerNotification notification, CancellationToken cancellationToken)
     {
-        if (!IsDisposed)
-        {
-            await RefreshDesignerAsync();
-        }
+        await RefreshDesignerAsync();
     }
 
     public async Task Handle(RemoveClueInputNotification notification, CancellationToken cancellationToken)
     {
-        if (!IsDisposed)
-        {
-            ClueInputViewModels.Remove(notification.ClueInputViewModel);
+        ClueInputViewModels.Remove(notification.ClueInputViewModel);
 
-            await RefreshDesignerAsync();
-        }
+        await RefreshDesignerAsync();
     }
 
     public async Task Handle(RemoveAnswerInputNotification notification, CancellationToken cancellationToken)
     {
-        if (!IsDisposed)
-        {
-            AnswerInputViewModels.Remove(notification.AnswerInputViewModel);
+        AnswerInputViewModels.Remove(notification.AnswerInputViewModel);
 
-            SetHasAnswers();
+        SetHasAnswers();
 
-            await RefreshDesignerAsync();
-        }
+        await RefreshDesignerAsync();
     }
 
     public async Task Handle(PeriodicTickNotification notification, CancellationToken cancellationToken)
@@ -252,18 +242,6 @@ public partial class DesignerPageViewModel : ObservableObject, INotificationHand
     {
         if (IsPlayable && !string.IsNullOrWhiteSpace(GameUrl))
         {
-            foreach (ClueInputViewModel clueInputViewModel in ClueInputViewModels)
-            {
-                clueInputViewModel.Dispose();
-            }
-
-            foreach (AnswerInputViewModel answerInputViewModel in AnswerInputViewModels)
-            {
-                answerInputViewModel.Dispose();
-            }
-
-            IsDisposed = true;
-
             await _navigationService.NavigateToUrlAsync(GameUrl);
         }
     }

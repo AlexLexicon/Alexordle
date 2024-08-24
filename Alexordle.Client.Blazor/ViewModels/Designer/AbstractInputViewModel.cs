@@ -8,7 +8,7 @@ using Lexicom.Validation;
 using MediatR;
 
 namespace Alexordle.Client.Blazor.ViewModels.Designer;
-public abstract partial class AbstractInputViewModel : ObservableObject, INotificationHandler<WidthChangedNotification>, IDisposable, INotificationHandler<PeriodicTickNotification>
+public abstract partial class AbstractInputViewModel : ObservableObject, INotificationHandler<WidthChangedNotification>, INotificationHandler<PeriodicTickNotification>
 {
     private readonly IMediator _mediator;
     private readonly ITimeProvider _timeProvider;
@@ -27,7 +27,6 @@ public abstract partial class AbstractInputViewModel : ObservableObject, INotifi
         TextRuleSetValidator = answerTextRuleSetValidator;
     }
 
-    private bool IsDisposed { get; set; }
     private bool IsChanging { get; set; }
     private long CurrentChagedUtcTick { get; set; }
     private long LastChangedUtcTick { get; set; }
@@ -51,11 +50,7 @@ public abstract partial class AbstractInputViewModel : ObservableObject, INotifi
 
     public async Task Handle(WidthChangedNotification notification, CancellationToken cancellationToken)
     {
-        //todo removed the dispose logic cause i dont think its needed
-        if (!IsDisposed)
-        {
-            await RefreshDesignerAsync();
-        }
+        await RefreshDesignerAsync();
     }
 
     public async Task Handle(PeriodicTickNotification notification, CancellationToken cancellationToken)
@@ -85,8 +80,6 @@ public abstract partial class AbstractInputViewModel : ObservableObject, INotifi
     [RelayCommand]
     protected virtual async Task RemoveAsync()
     {
-        Dispose();
-
         await DeleteAsync();
 
         await _mediator.Publish(GetRemoveInputNotification());
@@ -105,9 +98,4 @@ public abstract partial class AbstractInputViewModel : ObservableObject, INotifi
     }
 
     protected abstract Task DeleteAsync();
-
-    public void Dispose()
-    {
-        IsDisposed = true;
-    }
 }

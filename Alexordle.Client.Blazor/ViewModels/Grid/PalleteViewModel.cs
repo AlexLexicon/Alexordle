@@ -7,26 +7,22 @@ using CommunityToolkit.Mvvm.Input;
 using Lexicom.Concentrate.Blazor.WebAssembly.Amenities.Notifications;
 using Lexicom.Mvvm;
 using MediatR;
-using Microsoft.Extensions.Logging;
 using System.Collections.ObjectModel;
 
 namespace Alexordle.Client.Blazor.ViewModels.Grid;
 public partial class PalleteViewModel : ObservableObject, INotificationHandler<GeneratePalleteNotification>, INotificationHandler<PeriodicTickNotification>
 {
-    private readonly ILogger<PalleteViewModel> _logger;
     private readonly IMediator _mediator;
     private readonly IViewModelFactory _viewModelFactory;
     private readonly IPalleteService _palleteService;
     private readonly IStateService _stateService;
 
     public PalleteViewModel(
-        ILogger<PalleteViewModel> logger,
         IViewModelFactory viewModelFactory,
         IPalleteService palleteService,
         IStateService stateService,
         IMediator mediator)
     {
-        _logger = logger;
         _mediator = mediator;
         _viewModelFactory = viewModelFactory;
         _palleteService = palleteService;
