@@ -1,80 +1,80 @@
-﻿using Alexordle.Client.Application.Models;
+﻿//using Alexordle.Client.Application.Models;
 
-namespace Alexordle.Client.Application.Extensions;
-public static class HighlightsExtensions
-{
-    public static bool IsCorrect(this Highlights highlight)
-    {
-        return highlight switch
-        {
-            Highlights.Correct => true,
-            Highlights.CommittedCorrect => true,
-            _ => false,
-        };
-    }
+//namespace Alexordle.Client.Application.Extensions;
+//public static class HighlightsExtensions
+//{
+//    public static bool IsCorrect(this HintTypes highlight)
+//    {
+//        return highlight switch
+//        {
+//            HintTypes.Correct => true,
+//            HintTypes.CommittedCorrect => true,
+//            _ => false,
+//        };
+//    }
 
-    public static bool IsElsewhere(this Highlights highlight)
-    {
-        return highlight switch
-        {
-            Highlights.Elsewhere => true,
-            Highlights.CommittedElsewhere => true,
-            _ => false,
-        };
-    }
+//    public static bool IsElsewhere(this HintTypes highlight)
+//    {
+//        return highlight switch
+//        {
+//            HintTypes.Elsewhere => true,
+//            HintTypes.CommittedElsewhere => true,
+//            _ => false,
+//        };
+//    }
 
-    public static bool IsIllegal(this Highlights highlight)
-    {
-        return highlight switch
-        {
-            Highlights.Illegal => true,
-            Highlights.CommittedIllegal => true,
-            _ => false,
-        };
-    }
+//    public static bool IsIllegal(this HintTypes highlight)
+//    {
+//        return highlight switch
+//        {
+//            HintTypes.Illegal => true,
+//            HintTypes.CommittedIllegal => true,
+//            _ => false,
+//        };
+//    }
 
-    public static Highlights Better(this Highlights highlight, Highlights otherHighlight)
-    {
-        if (highlight is Highlights.CommittedIllegal || otherHighlight is Highlights.CommittedIllegal)
-        {
-            return Highlights.CommittedIllegal;
-        }
+//    public static HintTypes Better(this HintTypes highlight, HintTypes otherHighlight)
+//    {
+//        if (highlight is HintTypes.CommittedIllegal || otherHighlight is HintTypes.CommittedIllegal)
+//        {
+//            return HintTypes.CommittedIllegal;
+//        }
 
-        if (highlight is Highlights.CommittedCorrect || otherHighlight is Highlights.CommittedCorrect)
-        {
-            return Highlights.CommittedCorrect;
-        }
+//        if (highlight is HintTypes.CommittedCorrect || otherHighlight is HintTypes.CommittedCorrect)
+//        {
+//            return HintTypes.CommittedCorrect;
+//        }
 
-        if (highlight is Highlights.CommittedElsewhere || otherHighlight is Highlights.CommittedElsewhere)
-        {
-            return Highlights.CommittedElsewhere;
-        }
+//        if (highlight is HintTypes.CommittedElsewhere || otherHighlight is HintTypes.CommittedElsewhere)
+//        {
+//            return HintTypes.CommittedElsewhere;
+//        }
 
-        if (highlight is Highlights.CommittedIncorrect || otherHighlight is Highlights.CommittedIncorrect)
-        {
-            return Highlights.CommittedIncorrect;
-        }
+//        if (highlight is HintTypes.CommittedIncorrect || otherHighlight is HintTypes.CommittedIncorrect)
+//        {
+//            return HintTypes.CommittedIncorrect;
+//        }
 
-        if (highlight is Highlights.Illegal || otherHighlight is Highlights.Illegal)
-        {
-            return Highlights.Illegal;
-        }
+//        if (highlight is HintTypes.Illegal || otherHighlight is HintTypes.Illegal)
+//        {
+//            return HintTypes.Illegal;
+//        }
 
-        if (highlight is Highlights.Correct || otherHighlight is Highlights.Correct)
-        {
-            return Highlights.Correct;
-        }
+//        if (highlight is HintTypes.Correct || otherHighlight is HintTypes.Correct)
+//        {
+//            return HintTypes.Correct;
+//        }
 
-        if (highlight is Highlights.Elsewhere || otherHighlight is Highlights.Elsewhere)
-        {
-            return Highlights.Elsewhere;
-        }
+//        if (highlight is HintTypes.Elsewhere || otherHighlight is HintTypes.Elsewhere)
+//        {
+//            return HintTypes.Elsewhere;
+//        }
 
-        if (highlight is Highlights.Wrong || otherHighlight is Highlights.Wrong)
-        {
-            return Highlights.Wrong;
-        }
+//        if (highlight is HintTypes.Wrong || otherHighlight is HintTypes.Wrong)
+//        {
+//            return HintTypes.Wrong;
+//        }
 
-        return Highlights.None;
-    }
-}
+//        return HintTypes.None;
+//    }
+//}

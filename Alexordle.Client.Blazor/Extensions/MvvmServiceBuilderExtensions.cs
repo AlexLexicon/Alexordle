@@ -1,5 +1,5 @@
 ﻿using Alexordle.Client.Blazor.ViewModels.Designer;
-using Alexordle.Client.Blazor.ViewModels.Grid;
+using Alexordle.Client.Blazor.ViewModels.Pallete;
 using Alexordle.Client.Blazor.ViewModels.Keyboard;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Lexicom.DependencyInjection.Amenities.Extensions;

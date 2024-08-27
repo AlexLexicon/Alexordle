@@ -1,92 +1,118 @@
-﻿using Alexordle.Client.Application.Extensions;
-using Alexordle.Client.Application.Models;
+﻿using Alexordle.Client.Application.Database.Entities;
+using Alexordle.Client.Application.Database.Models;
 
 namespace Alexordle.Client.Application.Services;
 public interface IShareService
 {
-    Task<string> GenerateShareAsync(Guid puzzleId, string code);
+    Task<string> GenerateShareAsync(Guid puzzleId);
 }
 public class ShareService : IShareService
 {
-    private readonly IPalleteService _palleteService;
-    private readonly IStateService _stateService;
+    private readonly IPuzzleService _puzzleService;
     private readonly IUrlService _urlService;
+    private readonly IClueService _clueService;
+    private readonly IGuessService _guessService;
+    private readonly ITransmissionService _transmissionService;
 
     public ShareService(
-        IPalleteService palleteService,
-        IStateService stateService,
-        IUrlService urlService)
+        IPuzzleService puzzleService,
+        IUrlService urlService,
+        IClueService clueService,
+        IGuessService guessService,
+        ITransmissionService transmissionService)
     {
-        _palleteService = palleteService;
-        _stateService = stateService;
+        _puzzleService = puzzleService;
         _urlService = urlService;
+        _clueService = clueService;
+        _guessService = guessService;
+        _transmissionService = transmissionService;
     }
 
-    public async Task<string> GenerateShareAsync(Guid puzzleId, string code)
+    public async Task<string> GenerateShareAsync(Guid puzzleId)
     {
-        State state = await _stateService.GetStateAsync(puzzleId);
+        Puzzle puzzle = await _puzzleService.GetPuzzleAsync(puzzleId);
 
-        Pallete pallete = await _palleteService.GeneratePalleteAsync(puzzleId, state, isDesigner: false);
+        var serializePuzzleTask = _transmissionService.SerializePuzzleAsync(puzzleId);
 
-        string share = $"alexordle {(state.IsDefeat ? "?" : state.TotalGuesses)}/{state.MaximumGuesses}{Environment.NewLine}";
+        bool isDefeat = puzzle.IsComplete && puzzle.TotalAnswers - puzzle.CurrentAnswers > 0;
 
-        foreach (Row clue in pallete.Clues)
+        string share = $"alexordle {(isDefeat ? "?" : puzzle.CurrentGuesses)}/{puzzle.MaxGuesses}{Environment.NewLine}";
+
+        int row = 0;
+        bool hasClues = false;
+        bool complete = false;
+        while (!complete)
         {
-            share += GenerateRow(clue);
+            IReadOnlyList<Clue> clues = await _clueService.GetCluesAsync(puzzleId, row);
+
+            complete = clues.Count is <= 0;
+            if (!complete)
+            {
+                foreach (Clue clue in clues)
+                {
+                    hasClues = true;
+
+                    share += GetCell(clue.Hint);
+                }
+
+                share += Environment.NewLine;
+
+                row++;
+            }
         }
 
-        if (pallete.Clues.Count is > 0)
+        if (hasClues)
         {
-            for (int i = 0; i < pallete.Width; i++)
+            for (int i = 0; i < puzzle.Width; i++)
             {
-                string block = GetBlock(null);
-
-                share += block;
+                share += GetCell(null);
             }
+
             share += Environment.NewLine;
         }
 
-        foreach (Row row in pallete.Rows)
+        row = 0;
+        complete = false;
+        while (!complete)
         {
-            if (row.IsGuessed)
+            IReadOnlyList<Guess> guesses = await _guessService.GetGuessesAsync(puzzleId, row);
+
+            complete = guesses.Count is <= 0;
+            if (!complete)
             {
-                share += GenerateRow(row);
+
+                foreach (Guess guess in guesses)
+                {
+                    share += GetCell(guess.Hint);
+                }
+
+                share += Environment.NewLine;
+
+                row++;
             }
         }
 
-        share += await _urlService.GetPuzzleUrlAsync(code);
+        string serializedPuzzle = await serializePuzzleTask;
+
+        share += await _urlService.CreatePuzzleUrlAsync(serializedPuzzle);
 
         return share;
     }
 
-    private string GenerateRow(Row row)
+    private string GetCell(Hints? hint)
     {
-        string rowString = string.Empty;
-        foreach (Cell cell in row.Cells)
-        {
-            string block = GetBlock(cell);
-
-            rowString += block;
-        }
-
-        return $"{rowString}{Environment.NewLine}";
-    }
-
-    private string GetBlock(Cell? cell)
-    {
-        if (cell is null)
+        if (hint is null)
         {
             return "🔹";
         }
-        else if (cell.Highlight.IsIllegal())
-        {
-            return "🟥";
-        }
-        else if (cell.Highlight.IsCorrect())
+        //{
+        //    return "🟥";
+        //}
+        else if (hint is Hints.Correct)
         {
             return "🟩";
         }
-        else if (cell.Highlight.IsElsewhere())
+        else if (hint is Hints.Elsewhere)
         {
             return "🟨";
         }

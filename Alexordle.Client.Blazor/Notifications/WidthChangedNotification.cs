@@ -1,4 +1,4 @@
-﻿using MediatR;
+﻿//using MediatR;
 
-namespace Alexordle.Client.Blazor.Notifications;
-public record class WidthChangedNotification() : INotification;
+//namespace Alexordle.Client.Blazor.Notifications;
+//public record class WidthChangedNotification() : INotification;

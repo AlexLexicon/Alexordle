@@ -59,7 +59,7 @@ builder.Lexicom(l =>
 builder.Services.AddApplication();
 builder.Services.AddViewModels();
 
-builder.Services.AddSingleton<IWordListProvider, WordListProvider>();
+builder.Services.AddSingleton<IWordListsProvider, WordListProvider>();
 builder.Services.AddSingleton<IUrlService, UrlService>();
 builder.Services.AddHttpClient("wwwroot", (sp, hc) =>
 {

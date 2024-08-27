@@ -16,7 +16,7 @@ public class UrlService : IUrlService
         return _navigationService.GetBaseUrlAsync();
     }
 
-    public async Task<string> GetPuzzleUrlAsync(string code)
+    public async Task<string> CreatePuzzleUrlAsync(string code)
     {
         string url = await _navigationService.GetBaseUrlAsync();
 

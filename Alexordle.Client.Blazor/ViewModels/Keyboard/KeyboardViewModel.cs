@@ -1,4 +1,4 @@
-﻿using Alexordle.Client.Application.Database.Entities;
+﻿using Alexordle.Client.Application.Exceptions;
 using Alexordle.Client.Application.Services;
 using Alexordle.Client.Blazor.Models;
 using Alexordle.Client.Blazor.Notifications;
@@ -19,22 +19,16 @@ public partial class KeyboardViewModel : ObservableObject, INotificationHandler<
 
     private readonly IMediator _mediator;
     private readonly IViewModelFactory _viewModelFactory;
-    private readonly IGuessService _guessService;
-    private readonly ILetterService _letterService;
-    private readonly IDictionaryService _dictionaryService;
+    private readonly IHunchService _hunchService;
 
     public KeyboardViewModel(
         IMediator mediator,
         IViewModelFactory viewModelFactory,
-        IGuessService guessService,
-        ILetterService letterService,
-        IDictionaryService dictionaryService)
+        IHunchService hunchService)
     {
         _mediator = mediator;
         _viewModelFactory = viewModelFactory;
-        _guessService = guessService;
-        _letterService = letterService;
-        _dictionaryService = dictionaryService;
+        _hunchService = hunchService;
 
         Row1KeyViewModels = [];
         Row2KeyViewModels = [];
@@ -42,9 +36,6 @@ public partial class KeyboardViewModel : ObservableObject, INotificationHandler<
     }
 
     private Guid? PuzzleId { get; set; }
-    private int Width { get; set; }
-    private bool IsSpellChecking { get; set; }
-    private Guid? GuessWordId { get; set; }
 
     [ObservableProperty]
     private ObservableCollection<KeyViewModel> _row1KeyViewModels;
@@ -55,43 +46,22 @@ public partial class KeyboardViewModel : ObservableObject, INotificationHandler<
     [ObservableProperty]
     private ObservableCollection<KeyViewModel> _row3KeyViewModels;
 
-    public void Create(Puzzle puzzle)
+    public void Create(Guid puzzleId)
     {
-        PuzzleId = puzzle.Id;
-        Width = puzzle.Width;
-        IsSpellChecking = puzzle.IsSpellChecking;
+        PuzzleId = puzzleId;
 
         Row1KeyViewModels.Clear();
         Row2KeyViewModels.Clear();
         Row3KeyViewModels.Clear();
 
-        AddKeys(ROW_1, Row1KeyViewModels);
-        AddKeys(ROW_2, Row2KeyViewModels);
-        AddKeys(ROW_3, Row3KeyViewModels, widen: true);
-    }
-
-    private void AddKeys(string allKeysString, ObservableCollection<KeyViewModel> keyViewModels, bool widen = false)
-    {
-        if (PuzzleId is not null)
-        {
-            string[] keys = allKeysString.Split(',');
-
-            for (int i = 0; i < keys.Length; i++)
-            {
-                string text = keys[i];
-
-                bool isWide = widen && (i is 0 || i == keys.Length - 1);
-
-                var keyViewModel = _viewModelFactory.Create<KeyViewModel, string, bool>(text, isWide);
-
-                keyViewModels.Add(keyViewModel);
-            }
-        }
+        CreateKeys(ROW_1, Row1KeyViewModels);
+        CreateKeys(ROW_2, Row2KeyViewModels);
+        CreateKeys(ROW_3, Row3KeyViewModels, widen: true);
     }
 
     public async Task Handle(KeySubmitNotification notification, CancellationToken cancellationToken)
     {
-        await SubmitAsync(notification.Character);
+        await SubmitAsync(notification.InvariantCharacter);
     }
 
     public async Task Handle(KeyEnterNotification notification, CancellationToken cancellationToken)
@@ -104,81 +74,68 @@ public partial class KeyboardViewModel : ObservableObject, INotificationHandler<
         await BackspaceAsync();
     }
 
+    private void CreateKeys(string allKeysString, ObservableCollection<KeyViewModel> keyViewModels, bool widen = false)
+    {
+        string[] keys = allKeysString.Split(',');
+
+        for (int i = 0; i < keys.Length; i++)
+        {
+            string text = keys[i];
+
+            bool isWide = widen && (i is 0 || i == keys.Length - 1);
+
+            var keyViewModel = _viewModelFactory.Create<KeyViewModel>();
+
+            char? invariantCharacter = text.Length is 1 ? char.ToUpperInvariant(text[0]) : null;
+
+            keyViewModel.Create(text, isWide, invariantCharacter);
+
+            keyViewModels.Add(keyViewModel);
+        }
+    }
+
     private async Task EnterAsync()
     {
-        if (PuzzleId is not null && GuessWordId is not null)
+        if (PuzzleId is not null)
         {
-            SpecialMessages? specialMessage = null;
-
-            if (IsSpellChecking)
+            try
             {
-                bool isSpelledCorrectly = await _dictionaryService.CheckGuessSpellingAsync(GuessWordId.Value);
-                if (!isSpelledCorrectly)
-                {
-                    specialMessage = SpecialMessages.NotSpelledCorrectly;
-                }
-            }
+                await _hunchService.SubmitHunchAsync(PuzzleId.Value);
 
-            bool isAlreadyGuessed = await _guessService.IsAlreadyGuessedAsync(GuessWordId.Value);
-            if (isAlreadyGuessed)
+                await _mediator.Publish(new PuzzleUpdateNotification(PuzzleId.Value));
+            }
+            catch (IncompleteGuessException)
             {
-                specialMessage = SpecialMessages.AlreadyGuessed;
+                await _mediator.Publish(new SetMessageNotification(PuzzleId.Value, Message.IncompeleteGuess));
             }
-
-            bool isComplete = await _guessService.IsGuessCompleteAsync(GuessWordId.Value);
-            if (!isComplete)
+            catch (IncorrectSpellingException)
             {
-                specialMessage = SpecialMessages.IncompeleteWord;
+                await _mediator.Publish(new SetMessageNotification(PuzzleId.Value, Message.IncorrectSpelling));
             }
-
-            if (specialMessage is null)
+            catch (DuplicateGuessException)
             {
-                await _guessService.SubmitGuessAsync(GuessWordId.Value);
-
-                await CreateGuessAsync();
+                await _mediator.Publish(new SetMessageNotification(PuzzleId.Value, Message.AlreadyGuessed));
             }
-
-            await _mediator.Publish(new StateChangedNotification(specialMessage));
         }
     }
 
     private async Task BackspaceAsync()
     {
-        if (PuzzleId is not null && GuessWordId is not null)
+        if (PuzzleId is not null)
         {
-            await _letterService.RemoveLetterAsync(GuessWordId.Value);
+            await _hunchService.RemoveCharacterFromHunchAsync(PuzzleId.Value);
 
-            await _mediator.Publish(new StateChangedNotification());
+            await _mediator.Publish(new PuzzleUpdateNotification(PuzzleId.Value));
         }
     }
 
-    private async Task SubmitAsync(char character)
-    {
-        if (GuessWordId is null)
-        {
-            await CreateGuessAsync();
-        }
-
-        if (PuzzleId is not null && GuessWordId is not null)
-        {
-            int count = await _letterService.GetLettersCountAsync(GuessWordId.Value);
-
-            if (count < Width)
-            {
-                await _letterService.AppendLetterAsync(GuessWordId.Value, character);
-
-                await _mediator.Publish(new StateChangedNotification());
-            }
-        }
-    }
-
-    private async Task CreateGuessAsync()
+    private async Task SubmitAsync(char invariantCharacter)
     {
         if (PuzzleId is not null)
         {
-            Guess guess = await _guessService.CreateGuessAsync(PuzzleId.Value);
+            await _hunchService.AppendCharacterToHunchAsync(PuzzleId.Value, invariantCharacter);
 
-            GuessWordId = guess.WordId;
+            await _mediator.Publish(new PuzzleUpdateNotification(PuzzleId.Value));
         }
     }
 }

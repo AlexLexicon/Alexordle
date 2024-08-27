@@ -2,5 +2,5 @@
 public interface IUrlService
 {
     Task<string> GetUrlAsync();
-    Task<string> GetPuzzleUrlAsync(string code);
+    Task<string> CreatePuzzleUrlAsync(string serializedPuzzle);
 }

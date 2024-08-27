@@ -1,5 +1,5 @@
-﻿@page "/game"
-@inherits InjectedPage<GamePageViewModel>
+﻿@page "/puzzle"
+@inherits InjectedPage<PuzzlePageViewModel>
 <PageTitle>Alexordle</PageTitle>
 
 <div class="text-center mt-2 lg:mt-4">
@@ -9,7 +9,7 @@
         <p>Click <a class="link" @onclick="ViewModel.NavigateToDesignerCommand.Bind()">here</a> to design your own puzzle!</p>
     </div>
 </div>
-@if (ViewModel.IsFailed)
+@if (ViewModel.IsFaulted)
 {
     <div class="grid min-h-full place-items-center px-6 py-24">
         <div class="text-center p-4 bg-slate-200 rounded-lg">
@@ -29,7 +29,7 @@ else
     </div>
     <div class="mx-auto max-w-lg">
         <MessageView ViewModel="@ViewModel.MessageViewModel" />
-        @if (!ViewModel.IsFinished)
+        @if (!ViewModel.IsComplete)
         {
             <div class="flex justify-center">
                 <KeyboardView ViewModel="@ViewModel.KeyboardViewModel" />
@@ -39,14 +39,14 @@ else
         {
             <div class="flex justify-center">
                 <div>
-                    <button type="button" @onclick="ViewModel.ShareCommand.Bind()" class="designer-button designer-secondary-button-enabled">
+                    <button type="button" @onclick="ViewModel.CopyShareCommand.Bind()" class="designer-button designer-secondary-button-enabled">
                         Share
                     </button>
                 </div>
             </div>
             <div class="flex justify-center">
                 <div class="mt-2 text-xl mx-auto text-center">
-                    @ViewModel.Explaination
+                    @ViewModel.Explanation
                 </div>
             </div>
         }
@@ -59,11 +59,11 @@ else
 {
     [Parameter]
     [SupplyParameterFromQuery]
-    public string? Puzzle { get; set; }
+    public string? P { get; set; }
 
     protected override void OnParametersSet()
     {
-        ViewModel.PuzzleCode = Puzzle;
+        ViewModel.QueryString = P;
 
         base.OnParametersSet();
     }

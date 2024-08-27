@@ -9,115 +9,115 @@ using MediatR;
 namespace Alexordle.Client.Blazor.ViewModels.Designer;
 public partial class AnswerInputViewModel : AbstractInputViewModel
 {
-    private readonly IAnswerService _answerService;
-    private readonly IGuessService _guessService;
-    private readonly ILetterService _letterService;
-    private readonly IPuzzleService _puzzleService;
+    //private readonly IAnswerService _answerService;
+    //private readonly IGuessService _guessService;
+    //private readonly ILetterService _letterService;
+    //private readonly IPuzzleService _puzzleService;
 
-    public AnswerInputViewModel(
-        Guid puzzleId,
-        IMediator mediator,
-        ITimeProvider timeProvider,
-        IRuleSetValidator<AnswerInputRuleSet, string?> answerTextRuleSetValidator,
-        IAnswerService answerService,
-        IGuessService guessService,
-        ILetterService letterService,
-        IPuzzleService puzzleService) : base(puzzleId, mediator, timeProvider, answerTextRuleSetValidator)
-    {
-        _answerService = answerService;
-        _guessService = guessService;
-        _letterService = letterService;
-        _puzzleService = puzzleService;
-    }
+    //public AnswerInputViewModel(
+    //    Guid puzzleId,
+    //    IMediator mediator,
+    //    ITimeProvider timeProvider,
+    //    IRuleSetValidator<AnswerInputRuleSet, string?> answerTextRuleSetValidator,
+    //    IAnswerService answerService,
+    //    IGuessService guessService,
+    //    ILetterService letterService,
+    //    IPuzzleService puzzleService) : base(puzzleId, mediator, timeProvider, answerTextRuleSetValidator)
+    //{
+    //    _answerService = answerService;
+    //    _guessService = guessService;
+    //    _letterService = letterService;
+    //    _puzzleService = puzzleService;
+    //}
 
-    private Guid? AnswerWordId { get; set; }
-    private Guid GuessWordId { get; set; }
+    //private Guid? AnswerWordId { get; set; }
+    //private Guid GuessWordId { get; set; }
 
-    public override async Task CreateAsync(string initalText)
-    {
-        await CreateGuessAsync();
+    //public override async Task CreateAsync(string initalText)
+    //{
+    //    await CreateGuessAsync();
 
-        await base.CreateAsync(initalText);
-    }
+    //    await base.CreateAsync(initalText);
+    //}
 
-    protected override async Task RemoveAsync()
-    {
-        await _guessService.DeleteGuessAsync(GuessWordId);
+    //protected override async Task RemoveAsync()
+    //{
+    //    await _guessService.DeleteGuessAsync(GuessWordId);
 
-        await base.RemoveAsync();
-    }
+    //    await base.RemoveAsync();
+    //}
 
-    protected override async Task DeleteAsync()
-    {
-        if (AnswerWordId is not null)
-        {
-            await _answerService.DeleteAnswerAsync(AnswerWordId.Value);
+    //protected override async Task DeleteAsync()
+    //{
+    //    if (AnswerWordId is not null)
+    //    {
+    //        await _answerService.DeleteAnswerAsync(AnswerWordId.Value);
 
-            AnswerWordId = null;
-        }
-    }
+    //        AnswerWordId = null;
+    //    }
+    //}
 
-    protected override INotification GetRemoveInputNotification()
-    {
-        return new RemoveAnswerInputNotification(this);
-    }
+    //protected override INotification GetRemoveInputNotification()
+    //{
+    //    return new RemoveAnswerInputNotification(this);
+    //}
 
-    protected override async Task RefreshDesignerAsync()
-    {
-        if (!IsRemoved)
-        {
-            await base.RefreshDesignerAsync();
+    //protected override async Task RefreshDesignerAsync()
+    //{
+    //    if (!IsRemoved)
+    //    {
+    //        await base.RefreshDesignerAsync();
 
-            if (Text is not null)
-            {
-                Answer answer = await _answerService.CreateAnswerAsync(PuzzleId, Text);
+    //        if (Text is not null)
+    //        {
+    //            Answer answer = await _answerService.CreateAnswerAsync(PuzzleId, Text);
 
-                AnswerWordId = answer.WordId;
+    //            AnswerWordId = answer.WordId;
 
-                await WriteGuessAsync();
+    //            await WriteGuessAsync();
 
-                await TryCommitAsync();
-            }
-        }
-    }
+    //            await TryCommitAsync();
+    //        }
+    //    }
+    //}
 
-    private async Task TryCommitAsync()
-    {
-        Puzzle puzzle = await _puzzleService.GetPuzzleAsync(PuzzleId);
+    //private async Task TryCommitAsync()
+    //{
+    //    Puzzle puzzle = await _puzzleService.GetPuzzleAsync(PuzzleId);
 
-        int count = await _letterService.GetLettersCountAsync(GuessWordId);
+    //    int count = await _letterService.GetLettersCountAsync(GuessWordId);
 
-        if (count == puzzle.Width)
-        {
-            await _guessService.SubmitGuessAsync(GuessWordId);
-        }
-        else
-        {
-            await _guessService.DeleteGuessAsync(GuessWordId);
+    //    if (count == puzzle.Width)
+    //    {
+    //        await _guessService.SubmitGuessAsync(GuessWordId);
+    //    }
+    //    else
+    //    {
+    //        await _guessService.DeleteGuessAsync(GuessWordId);
 
-            await CreateGuessAsync();
+    //        await CreateGuessAsync();
 
-            await WriteGuessAsync();
-        }
-    }
+    //        await WriteGuessAsync();
+    //    }
+    //}
 
-    private async Task CreateGuessAsync()
-    {
-        Guess guess = await _guessService.CreateGuessAsync(PuzzleId);
+    //private async Task CreateGuessAsync()
+    //{
+    //    Guess guess = await _guessService.CreateGuessAsync(PuzzleId);
 
-        GuessWordId = guess.WordId;
-    }
+    //    GuessWordId = guess.WordId;
+    //}
 
-    private async Task WriteGuessAsync()
-    {
-        if (Text is not null)
-        {
-            await _letterService.DeleteLettersAsync(GuessWordId);
+    //private async Task WriteGuessAsync()
+    //{
+    //    if (Text is not null)
+    //    {
+    //        await _letterService.DeleteLettersAsync(GuessWordId);
 
-            foreach (char character in Text)
-            {
-                await _letterService.AppendLetterAsync(GuessWordId, character);
-            }
-        }
-    }
+    //        foreach (char character in Text)
+    //        {
+    //            await _letterService.AppendLetterAsync(GuessWordId, character);
+    //        }
+    //    }
+    //}
 }

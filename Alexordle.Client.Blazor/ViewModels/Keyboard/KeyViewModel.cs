@@ -1,5 +1,4 @@
-﻿using Alexordle.Client.Application.Extensions;
-using Alexordle.Client.Application.Models;
+﻿using Alexordle.Client.Application.Database.Models;
 using Alexordle.Client.Application.Services;
 using Alexordle.Client.Blazor.Notifications;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -7,24 +6,20 @@ using CommunityToolkit.Mvvm.Input;
 using MediatR;
 
 namespace Alexordle.Client.Blazor.ViewModels.Keyboard;
-public partial class KeyViewModel : ObservableObject, INotificationHandler<CharacterHighlightNotification>
+public partial class KeyViewModel : ObservableObject, INotificationHandler<PuzzleUpdateNotification>
 {
     private readonly IMediator _mediator;
+    private readonly IHintService _hintService;
 
     public KeyViewModel(
-        string text,
-        bool isWide,
-        IMediator mediator)
+        IMediator mediator,
+        IHintService hintService)
     {
         _mediator = mediator;
-
-        InvariantCharacter = text.Length is 1 ? LetterService.MakeInvariant(text[0]) : null;
-
-        Text = text;
-        IsWide = isWide;
+        _hintService = hintService;
     }
 
-    private char? InvariantCharacter { get; }
+    private char? InvariantCharacter { get; set; }
 
     [ObservableProperty]
     private string? _text;
@@ -33,7 +28,27 @@ public partial class KeyViewModel : ObservableObject, INotificationHandler<Chara
     private bool _isWide;
 
     [ObservableProperty]
-    private Highlights _highlight;
+    private Hints _hint;
+
+    public void Create(string text, bool isWide, char? invariantCharacter)
+    {
+        Text = text;
+        IsWide = isWide;
+        InvariantCharacter = invariantCharacter;
+    }
+
+    public async Task Handle(PuzzleUpdateNotification notification, CancellationToken cancellationToken)
+    {
+        await UpdateAsync(notification.PuzzleId);
+    }
+
+    private async Task UpdateAsync(Guid puzzleId)
+    {
+        if (InvariantCharacter is not null)
+        {
+            Hint = await _hintService.GetHighestHintAsync(puzzleId, InvariantCharacter.Value);
+        }
+    }
 
     [RelayCommand]
     private async Task SubmitKeyAsync()
@@ -50,23 +65,6 @@ public partial class KeyViewModel : ObservableObject, INotificationHandler<Chara
         {
             await SubmitAsync(InvariantCharacter.Value);
         }
-    }
-
-    public Task Handle(CharacterHighlightNotification notification, CancellationToken cancellationToken)
-    {
-        if (InvariantCharacter is not null && InvariantCharacter == notification.Character && notification.Highlight is not Highlights.None)
-        {
-            if (notification.IsFinished)
-            {
-                Highlight = Highlights.CommittedIncorrect;
-            }
-            else
-            {
-                Highlight = Highlight.Better(notification.Highlight);
-            }
-        }
-
-        return Task.CompletedTask;
     }
 
     private async Task EnterAsync()

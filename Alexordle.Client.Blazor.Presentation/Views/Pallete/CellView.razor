@@ -1,26 +1,30 @@
 ﻿@inherits ParameterLayout<CellViewModel>
 
 <div class="pallete-cell border-[@(ViewModel.Width is > 7 ? "1" : "3")px]">
-    <div class="pallete-cell-base pallete-cell-character @(GetCssClasses())">
+    <div class="pallete-cell-base pallete-cell-character @(SelectCss())">
         @ViewModel.Text
     </div>
 </div>
 
 @code
 {
-    public string GetCssClasses()
+    public string SelectCss()
     {
-        return ViewModel.Highlight switch
+        if (ViewModel.Hint is Hints.Correct)
         {
-            Highlights.Wrong => "bg-none border-gray-400 text-black border-dashed",
-            Highlights.Elsewhere => "bg-none border-yellow-500 text-black border-dashed",
-            Highlights.Correct => "bg-none border-emerald-800 text-black border-dashed",
-            Highlights.Illegal => "bg-none border-red-700 text-black border-dashed",
-            Highlights.CommittedIncorrect => "bg-gray-500 border-gray-600 text-white",
-            Highlights.CommittedElsewhere => "bg-yellow-400 border-yellow-500 text-white",
-            Highlights.CommittedCorrect => "bg-emerald-700 border-emerald-800 text-white",
-            Highlights.CommittedIllegal => "bg-red-600 border-red-700 text-white",
-            _ => "bg-none border-gray-400 text-black",
-        };
+            return ViewModel.IsHunch ? "hint-hunch-correct" : "hint-correct";
+        }
+
+        if (ViewModel.Hint is Hints.Elsewhere)
+        {
+            return ViewModel.IsHunch ? "hint-hunch-elsewhere" : "hint-elsewhere";
+        }
+
+        if (ViewModel.Hint is Hints.Wrong)
+        {
+            return ViewModel.IsHunch ? "hint-hunch-wrong" : "hint-incorrect";
+        }
+
+        return ViewModel.IsHunch ? "hint-hunch-unknown" : "hint-incorrect";
     }
 }

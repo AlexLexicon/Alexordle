@@ -19,6 +19,6 @@ public class AlexordleDbContext : DbContext
     public DbSet<Answer> Answers { get; set; }
     public DbSet<Clue> Clues { get; set; }
     public DbSet<Guess> Guesses { get; set; }
-    public DbSet<Letter> Letters { get; set; }
+    public DbSet<Hunch> Hunches { get; set; }
     public DbSet<Puzzle> Puzzles { get; set; }
 }

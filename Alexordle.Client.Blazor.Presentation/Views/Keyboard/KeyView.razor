@@ -1,24 +1,23 @@
 ﻿@inherits ParameterLayout<KeyViewModel>
 
-<button type="button" tabindex="-1" onclick="@ViewModel.SubmitKeyCommand.Bind()" class="flex items-center justify-center cursor-pointer text-xl m-0.5 min-h-10 p-0.5 uppercase rounded border-[3px] @(ViewModel.IsWide ? "flex-[2_1_0%]" : "flex-1") @(GetCssClasses()))">
+<button type="button" tabindex="-1" onclick="@ViewModel.SubmitKeyCommand.Bind()" class="flex items-center justify-center cursor-pointer text-xl m-0.5 min-h-10 p-0.5 uppercase rounded @(SelectCss()) @(ViewModel.IsWide ? "flex-[2_1_0%]" : "flex-1") border-[3px]">
     @ViewModel.Text
 </button>
 
 @code
 {
-    public string GetCssClasses()
+    public string SelectCss()
     {
-        return ViewModel.Highlight switch
+        if (ViewModel.Hint is Hints.Correct)
         {
-            Highlights.Wrong => "bg-none border-gray-300 text-black border-dashed",
-            Highlights.Elsewhere => "bg-none border-yellow-500 text-black border-dashed",
-            Highlights.Correct => "bg-none border-emerald-800 text-black border-dashed",
-            Highlights.Illegal => "bg-none border-red-700 text-black border-dashed",
-            Highlights.CommittedIncorrect => "bg-gray-500 border-gray-600 text-white",
-            Highlights.CommittedElsewhere => "bg-yellow-400 border-yellow-500 text-white",
-            Highlights.CommittedCorrect => "bg-emerald-700 border-emerald-800 text-white",
-            Highlights.CommittedIllegal => "bg-red-600 border-red-700 text-white",
-            _ => "bg-none border-gray-400 text-black",
-        };
+            return "hint-correct";
+        }
+
+        if (ViewModel.Hint is Hints.Elsewhere)
+        {
+            return "hint-elsewhere";
+        }
+
+        return "hint-incorrect";
     }
 }

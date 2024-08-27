@@ -190,3 +190,36 @@ body {
 .pallete-cell-character {
     @apply uppercase justify-center font-extrabold font-mono text-2xl md:text-2xl;
 }
+
+.hint-correct {
+    @apply bg-emerald-700 border-emerald-800 text-white;
+}
+
+.hint-elsewhere {
+    @apply bg-yellow-400 border-yellow-500 text-white;
+}
+
+.hint-incorrect {
+    @apply bg-none border-gray-400 text-black;
+}
+
+.hint-hunch-correct {
+    @apply bg-none border-emerald-800 text-black border-dashed;
+}
+
+.hint-hunch-elsewhere {
+    @apply bg-none border-yellow-500 text-black border-dashed;
+}
+
+.hint-hunch-wrong {
+    @apply bg-none border-gray-400 text-black border-dashed;
+}
+
+.hint-hunch-unknown {
+    @apply bg-none border-gray-400 text-black;
+}
+
+/*
+    bg-red-600 border-red-700 text-white
+    g-none border-red-700 text-black border-dashed
+*/

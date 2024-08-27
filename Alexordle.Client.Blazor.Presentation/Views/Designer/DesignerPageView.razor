@@ -22,60 +22,60 @@
                             Spell Check
                         </div>
                         <div class="flex flex-row items-center">
-                            <input type="checkbox" @bind="ViewModel.IsSpellChecking" @bind:after="@ViewModel.IsSpellCheckingChangedCommand.BindAfter()" class="designer-checkbox">
+@*                             <input type="checkbox" @bind="ViewModel.IsSpellChecking" @bind:after="@ViewModel.IsSpellCheckingChangedCommand.BindAfter()" class="designer-checkbox"> *@
                             <p class="designer-checkbox-label">
                                 Guesses must match an answer or be within the word list.
                             </p>
                         </div>
-                        @if (!ViewModel.IsSpellCheckingValid)
+@*                         @if (!ViewModel.IsSpellCheckingValid)
                         {
                             <ul class="lexicom-textinput-errors">
                                 <li class="lexicom-textinput-error">
                                     The word list is only avaliable for games with a width of '5'.
                                 </li>
                             </ul>
-                        }
+                        } *@
                     </div>
                     <div>
                         <div class="designer-textinput-section">
                             Width
                         </div>
-                        <TextInput @bind-Text="@ViewModel.WidthText" @bind-Text:after="@ViewModel.WidthTextChangedCommand.BindAfter()" Validator="@ViewModel.WidthTextRuleSetValidator" />
+@*                         <TextInput @bind-Text="@ViewModel.WidthText" @bind-Text:after="@ViewModel.WidthTextChangedCommand.BindAfter()" Validator="@ViewModel.WidthTextRuleSetValidator" /> *@
                     </div>
                     <div>
                         <div class="designer-textinput-section">
                             Maximum Guesses
                         </div>
-                        <TextInput @bind-Text="@ViewModel.MaximumGuessesText" @bind-Text:after="@ViewModel.MaximumGuessesTextChangedCommand.BindAfter()" Validator="@ViewModel.MaximumGuessesTextRuleSetValidator" />
+@*                         <TextInput @bind-Text="@ViewModel.MaximumGuessesText" @bind-Text:after="@ViewModel.MaximumGuessesTextChangedCommand.BindAfter()" Validator="@ViewModel.MaximumGuessesTextRuleSetValidator" /> *@
                     </div>
                     <div>
                         <div class="designer-textinput-section">
                             <div>
                                 Clues
                             </div>
-                            <button type="button" @onclick="ViewModel.AddClueInputCommand.Bind()" class="designer-button designer-add-button">
+@*                             <button type="button" @onclick="ViewModel.AddClueInputCommand.Bind()" class="designer-button designer-add-button">
                                 <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                                 </svg>
-                            </button>
+                            </button> *@
                         </div>
-                        @foreach (ClueInputViewModel clueInputViewModel in ViewModel.ClueInputViewModels)
+@*                         @foreach (ClueInputViewModel clueInputViewModel in ViewModel.ClueInputViewModels)
                         {
                             <ClueInputView ViewModel="clueInputViewModel" />
-                        }
+                        } *@
                     </div>
                     <div>
                         <div class="designer-textinput-section">
                             <div>
                                 Answers
                             </div>
-                            <button type="button" @onclick="ViewModel.AddAnswerInputCommand.Bind()" class="designer-button designer-add-button">
+@*                             <button type="button" @onclick="ViewModel.AddAnswerInputCommand.Bind()" class="designer-button designer-add-button">
                                 <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                                 </svg>
-                            </button>
+                            </button> *@
                         </div>
-                        @if (!ViewModel.HasAnswers)
+@*                         @if (!ViewModel.HasAnswers)
                         {
                             <ul class="lexicom-textinput-errors">
                                 <li class="lexicom-textinput-error">
@@ -86,23 +86,23 @@
                         @foreach (AnswerInputViewModel answerInputViewModel in ViewModel.AnswerInputViewModels)
                         {
                             <AnswerInputView ViewModel="answerInputViewModel" />
-                        }
+                        } *@
                     </div>
                 </div>
                 <div class="w-full flex justify-center mt-4">
                     <div class="grid grid-cols-2 gap-2.5 w-3/5">
-                        <button type="button" @onclick="ViewModel.CopyGameUrlCommand.Bind()" class="designer-button @(ViewModel.IsPlayable ? "designer-secondary-button-enabled" : "designer-secondary-button-disabled")">
+@*                         <button type="button" @onclick="ViewModel.CopyGameUrlCommand.Bind()" class="designer-button @(ViewModel.IsPlayable ? "designer-secondary-button-enabled" : "designer-secondary-button-disabled")">
                             Copy Link
                         </button>
                         <button type="button" @onclick="ViewModel.PlayGameCommand.Bind()" class="designer-button  @(ViewModel.IsPlayable ? "designer-primary-button-enabled" : "designer-primary-button-disabled")">
                             Play
-                        </button>
+                        </button> *@
                     </div>
                 </div>
             </div>
             <div class="h-0.5 rounded bg-gray-400 my-4 lg:my-0 lg:h-auto lg:w-0.5 lg:translate-x-8" />
             <div class="lg:w-2/4 lg:flex">
-                <PalleteView ViewModel="@ViewModel.PalleteViewModel"/>
+                @* <PalleteView ViewModel="@ViewModel.PalleteViewModel"/> *@
             </div>
         </div>
     </div>
@@ -112,17 +112,17 @@
 
 @code
 {
-    [Parameter]
-    [SupplyParameterFromQuery]
-    public string? Puzzle { get; set; }
+    // [Parameter]
+    // [SupplyParameterFromQuery]
+    // public string? Puzzle { get; set; }
 
-    protected override async Task OnParametersSetAsync()
-    {
-        if (!string.IsNullOrWhiteSpace(Puzzle))
-        {
-            await ViewModel.RedirectAsync(Puzzle);
-        }
+    // protected override async Task OnParametersSetAsync()
+    // {
+    //     if (!string.IsNullOrWhiteSpace(Puzzle))
+    //     {
+    //         await ViewModel.RedirectAsync(Puzzle);
+    //     }
 
-        await base.OnParametersSetAsync();
-    }
+    //     await base.OnParametersSetAsync();
+    // }
 }

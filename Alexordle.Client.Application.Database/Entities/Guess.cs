@@ -1,19 +1,24 @@
-﻿using Alexordle.Client.Application.Database.Abstractions;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Alexordle.Client.Application.Database.Entities;
-public class Guess : AbstractWord, IEntityTypeConfiguration<Guess>
+public class Guess : Cell, IEntityTypeConfiguration<Guess>
 {
-    public required long CreatedTimestamp { get; init; }
-    public required long CommittedTimestamp { get; init; }
-    public required bool IsCommitted { get; set; }
-    public required string? CommittedInvariantText { get; set; }
+    public required int Row { get; init; }
 
     public void Configure(EntityTypeBuilder<Guess> builder)
     {
         builder
             .ToTable("Guesses")
-            .HasKey(a => a.WordId);
+            .HasKey(g => new
+            {
+                g.PuzzleId,
+                g.Row,
+                g.Column,
+            });
+
+        builder
+            .Property(h => h.Hint)
+            .HasConversion<string>();
     }
 }
