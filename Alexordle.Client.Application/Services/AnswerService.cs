@@ -43,7 +43,9 @@ public class AnswerService : IAnswerService
             }
         }
 
-        return answerIdToInvariantTexts.Values.ToList();
+        return answerIdToInvariantTexts.Values
+            .Order()
+            .ToList();
     }
 
     public async Task<IReadOnlyList<Answer>> GetAnswersAsync(Guid puzzleId)
@@ -53,6 +55,7 @@ public class AnswerService : IAnswerService
         return await db.Answers
             .AsNoTracking()
             .Where(a => a.PuzzleId == puzzleId)
+            .OrderBy(a => a.InvariantCharacter)
             .ToListAsync();
     }
 

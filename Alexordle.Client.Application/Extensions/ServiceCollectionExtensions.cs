@@ -12,7 +12,6 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IGuessService, GuessService>();
         services.AddSingleton<IHintService, HintService>();
         services.AddSingleton<IHunchService, HunchService>();
-        services.AddSingleton<IPackService, CsvPackService>();
         services.AddSingleton<IPersistenceService, PersistenceService>();
         services.AddSingleton<IPuzzleService, PuzzleService>();
         services.AddSingleton<IShareService, ShareService>();

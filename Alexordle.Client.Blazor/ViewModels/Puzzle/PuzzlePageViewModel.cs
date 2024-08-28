@@ -170,6 +170,8 @@ public partial class PuzzlePageViewModel : ObservableObject, INotificationHandle
             {
                 await _hunchService.SubmitHunchAsync(pi);
 
+                await _persistenceService.SaveAsync(pi);
+
                 await _mediator.Publish(new PuzzleUpdateNotification(pi));
             }
             catch (IncompleteGuessException)
@@ -202,6 +204,8 @@ public partial class PuzzlePageViewModel : ObservableObject, INotificationHandle
         await AutoRecoverPuzzleAsync(async pi =>
         {
             await _hunchService.AppendCharacterToHunchAsync(pi, invariantCharacter);
+
+            await _persistenceService.SaveAsync(pi);
 
             await _mediator.Publish(new PuzzleUpdateNotification(pi));
         });

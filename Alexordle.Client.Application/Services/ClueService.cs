@@ -43,7 +43,9 @@ public class ClueService : IClueService
             }
         }
 
-        return clueRowToInvariantTexts.Values.ToList();
+        return clueRowToInvariantTexts.Values
+            .Order()
+            .ToList();
     }
 
     public async Task<IReadOnlyList<Clue>> GetCluesAsync(Guid puzzleId, int row)
@@ -53,6 +55,7 @@ public class ClueService : IClueService
         return await db.Clues
             .AsNoTracking()
             .Where(c => c.PuzzleId == puzzleId && c.Row == row)
+            .OrderBy(c => c.InvariantCharacter)
             .ToListAsync();
     }
     //private readonly IDbContextFactory<AlexordleDbContext> _dbContextFactory;
