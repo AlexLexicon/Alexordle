@@ -1,138 +1,82 @@
-﻿//using Alexordle.Client.Application.Exceptions;
-//using Alexordle.Client.Application.Models;
-//using System.Text.Json;
+﻿using Alexordle.Client.Application.Database.Entities;
+using Alexordle.Client.Application.Models;
+using System.Text;
+using System.Web;
 
-//namespace Alexordle.Client.Application.Services;
-//public interface ISerializationService
-//{
-//    //Task<string> ConvertToStringAsync(Game game);
-//    //Task<Game> ConvertFromStringAsync(string gameString);
-//}
-//public class JsonSerializationService : ISerializationService
-//{
-//    //public Task<string> ConvertToStringAsync(Game game)
-//    //{
-//    //    try
-//    //    {
-//    //        string json = JsonSerializer.Serialize(game);
+namespace Alexordle.Client.Application.Services;
+public interface ISerializationService
+{
+    Task<Puzzle> DeserializeAndStartPuzzleAsync(string serializedPuzzle);
+    /// <exception cref="PuzzleDoesNotExistException"></exception>
+    Task<string> SerializePuzzleAsync(Guid puzzleId);
+    Task DeserializePalleteAsync(Guid puzzleId, string serializedPallete);
+    Task<string> SerializePalleteAsync(Guid puzzleId);
+}
+public class SerializationService : ISerializationService
+{
+    private readonly IPackService _packService;
+    private readonly IPuzzleService _puzzleService;
+    private readonly IAnswerService _answerService;
+    private readonly IClueService _clueService;
 
-//    //        return Task.FromResult(json);
-//    //    }
-//    //    catch (Exception e)
-//    //    {
-//    //        throw new SerializationException(e);
-//    //    }
-//    //}
+    public SerializationService(
+        IPackService packService,
+        IPuzzleService puzzleService,
+        IAnswerService answerService,
+        IClueService clueService)
+    {
+        _packService = packService;
+        _puzzleService = puzzleService;
+        _answerService = answerService;
+        _clueService = clueService;
+    }
 
-//    //public Task<Game> ConvertFromStringAsync(string gameString)
-//    //{
-//    //    try
-//    //    {
-//    //        Game? game = JsonSerializer.Deserialize<Game>(gameString);
+    public async Task<Puzzle> DeserializeAndStartPuzzleAsync(string serializedPuzzle)
+    {
+        string packBase64 = HttpUtility.UrlDecode(serializedPuzzle);
 
-//    //        if (game is null)
-//    //        {
-//    //            throw new JsonNullDeserializationException();
-//    //        }
+        byte[] packBytes = Convert.FromBase64String(packBase64);
 
-//    //        return Task.FromResult(game);
-//    //    }
-//    //    catch (Exception e)
-//    //    {
-//    //        throw new SerializationException(e);
-//    //    }
-//    //}
-//}
-//public class CustomSerializationService : ISerializationService
-//{
-//    //public const char DELIMITER = ',';
-//    //private const char DELIMITER_ARRAY = ';';
+        string packString = Encoding.Default.GetString(packBytes);
 
-//    //public Task<string> ConvertToStringAsync(Game game)
-//    //{
-//    //    try
-//    //    {
-//    //        string maximumGuesses = game.MaximumGuesses.ToString();
-//    //        string width = game.Width.ToString();
-//    //        string isSpellChecking = (game.IsSpellChecking ? 1 : 0).ToString();
-//    //        string clues = string.Join(DELIMITER_ARRAY, game.Clues);
-//    //        string answers = string.Join(DELIMITER_ARRAY, game.Answers);
+        PuzzlePack pack = await _packService.UnPackPuzzleAsync(packString);
 
-//    //        if (ContainsSpecialCharacters(maximumGuesses, width, isSpellChecking) || ContainsSpecialCharacters(game.Clues) || ContainsSpecialCharacters(game.Answers))
-//    //        {
-//    //            throw new Exception($"The special chracters '{DELIMITER}', '{DELIMITER_ARRAY}' are reserved and cannot be included in the game strings.");
-//    //        }
+        return await _puzzleService.StartPuzzleAsync(pack.Width, pack.MaxGuesses, pack.IsSpellChecking, pack.Clues, pack.Answers);
+    }
+ 
+    public async Task<string> SerializePuzzleAsync(Guid puzzleId)
+    {
+        var getPuzzleTask = _puzzleService.GetPuzzleAsync(puzzleId);
+        var getAnswerInvariantTextsTask = _answerService.GetAnswerInvariantTextsAsync(puzzleId);
+        var getClueInvariantTextsTask = _clueService.GetClueInvariantTextsAsync(puzzleId);
 
-//    //        string code = string.Join(DELIMITER, maximumGuesses, width, isSpellChecking, clues, answers);
+        Puzzle puzzle = await getPuzzleTask;
+        IReadOnlyList<string> answers = await getAnswerInvariantTextsTask;
+        IReadOnlyList<string> clues = await getClueInvariantTextsTask;
 
-//    //        code += DELIMITER; //we append the delimiter at the end to better detect malformed codes.
+        string packString = await _packService.PackPuzzleAsync(new PuzzlePack
+        {
+            Width = puzzle.Width,
+            MaxGuesses = puzzle.MaxGuesses,
+            IsSpellChecking = puzzle.IsSpellChecking,
+            Answers = answers,
+            Clues = clues,
+        });
 
-//    //        return Task.FromResult(code);
-//    //    }
-//    //    catch (Exception e)
-//    //    {
-//    //        throw new SerializationException(e);
-//    //    }
-//    //}
+        byte[] packBytes = Encoding.Default.GetBytes(packString);
 
-//    //public Task<Game> ConvertFromStringAsync(string gameString)
-//    //{
-//    //    try
-//    //    {
-//    //        string[] parts = gameString.Split(DELIMITER);
+        string packBase64 = Convert.ToBase64String(packBytes);
 
-//    //        if (parts.Length is not 6)
-//    //        {
-//    //            throw new Exception("too many or too few parts.");
-//    //        }
+        return HttpUtility.UrlEncode(packBase64);
+    }
 
-//    //        int maximumGuesses = int.Parse(parts[0]);
-//    //        int width = int.Parse(parts[1]);
-//    //        bool isSpellChecking = int.Parse(parts[2]) is 1;
-//    //        string[] cluesArray = parts[3].Split(DELIMITER_ARRAY);
-//    //        string[] answersArray = parts[4].Split(DELIMITER_ARRAY);
+    public Task DeserializePalleteAsync(Guid puzzleId, string serializedPallete)
+    {
+        throw new NotImplementedException();
+    }
 
-//    //        List<string> clues = cluesArray
-//    //            .Where(c => !string.IsNullOrWhiteSpace(c))
-//    //            .ToList();
-
-//    //        List<string> answers = answersArray
-//    //            .Where(a => !string.IsNullOrWhiteSpace(a))
-//    //            .ToList();
-
-//    //        if (answers.Count is <= 0)
-//    //        {
-//    //            throw new Exception("game string was malformed, no answers.");
-//    //        }
-
-//    //        var game = new Game
-//    //        {
-//    //            MaximumGuesses = maximumGuesses,
-//    //            Width = width,
-//    //            IsSpellChecking = isSpellChecking,
-//    //            Clues = clues,
-//    //            Answers = answers,
-//    //        };
-
-//    //        return Task.FromResult(game);
-//    //    }
-//    //    catch (Exception e)
-//    //    {
-//    //        throw new SerializationException(e);
-//    //    }
-//    //}
-
-//    //private bool ContainsSpecialCharacters(params string[] parts) => ContainsSpecialCharacters(partsEnumerable: parts);
-//    //private bool ContainsSpecialCharacters(IEnumerable<string> partsEnumerable)
-//    //{
-//    //    foreach (string part in partsEnumerable)
-//    //    {
-//    //        if (part.Contains(DELIMITER) || part.Contains(DELIMITER_ARRAY))
-//    //        {
-//    //            return true;
-//    //        }
-//    //    }
-
-//    //    return false;
-//    //}
-//}
+    public Task<string> SerializePalleteAsync(Guid puzzleId)
+    {
+        throw new NotImplementedException();
+    }
+}

@@ -1,11 +1,4 @@
-﻿using Alexordle.Client.Blazor.Notifications;
-using Alexordle.Client.Blazor.Validations.RuleSets;
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-using Lexicom.Concentrate.Blazor.WebAssembly.Amenities.Notifications;
-using Lexicom.DependencyInjection.Primitives;
-using Lexicom.Validation;
-using MediatR;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Alexordle.Client.Blazor.ViewModels.Designer;
 public abstract partial class AbstractInputViewModel : ObservableObject//, INotificationHandler<WidthChangedNotification>, INotificationHandler<PeriodicTickNotification>

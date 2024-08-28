@@ -1,12 +1,4 @@
-﻿using Alexordle.Client.Application.Database.Entities;
-using Alexordle.Client.Application.Services;
-using Alexordle.Client.Blazor.Notifications;
-using Alexordle.Client.Blazor.Validations.RuleSets;
-using Lexicom.DependencyInjection.Primitives;
-using Lexicom.Validation;
-using MediatR;
-
-namespace Alexordle.Client.Blazor.ViewModels.Designer;
+﻿namespace Alexordle.Client.Blazor.ViewModels.Designer;
 public partial class AnswerInputViewModel : AbstractInputViewModel
 {
     //private readonly IAnswerService _answerService;

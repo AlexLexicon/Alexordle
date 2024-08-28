@@ -7,9 +7,6 @@ public interface IAnswerService
 {
     Task<IReadOnlyList<string>> GetAnswerInvariantTextsAsync(Guid puzzleId);
     Task<IReadOnlyList<Answer>> GetAnswersAsync(Guid puzzleId);
-    //Task<IReadOnlyList<Answer>> GetAnswersAsync(Guid puzzleId);
-    //Task<Answer> CreateAnswerAsync(Guid puzzleId, string answer);
-    //Task DeleteAnswerAsync(Guid answerWordId);
 }
 public class AnswerService : IAnswerService
 {

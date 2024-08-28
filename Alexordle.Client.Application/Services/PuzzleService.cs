@@ -8,19 +8,10 @@ using Microsoft.EntityFrameworkCore;
 namespace Alexordle.Client.Application.Services;
 public interface IPuzzleService
 {
+    Task<bool> PuzzleExistsAsync(Guid puzzleId);
+    /// <exception cref="PuzzleDoesNotExistException"></exception>
     Task<Puzzle> GetPuzzleAsync(Guid puzzleId);
     Task<Puzzle> StartPuzzleAsync(int width, int? maxGuesses, bool isSpellChecking, IEnumerable<string> clues, IEnumerable<string> answers);
-
-    //Task<Puzzle> StartPuzzleAsync(int width, int? maximumGuesses, bool isSpellChecking, IEnumerable<string> clues, IEnumerable<string> answers);
-    //Task AppendCharacterToHunchAsync(Guid puzzleId, char character);
-    //Task RemoveCharacterFromHunchAsync(Guid puzzleId);
-    //Task<Puzzle> GetPuzzleAsync(Guid puzzleId);
-    //Task<Puzzle> CreatePuzzleAsync();
-    //Task SetWidthAsync(Guid puzzleId, int width);
-    //Task SetMaximumGuessesAsync(Guid puzzleId, int maximumGuesses);
-    //Task SetIsSpellCheckingAsync(Guid puzzleId, bool isSpellChecking);
-    //Task DeleteAllPuzzlesAsync();
-    //Task DeletePuzzleAsync(Guid puzzleId);
 }
 public class PuzzleService : IPuzzleService
 {
@@ -38,13 +29,16 @@ public class PuzzleService : IPuzzleService
         _hintService = hintService;
     }
 
+    public async Task<bool> PuzzleExistsAsync(Guid puzzleId)
+    {
+        Puzzle? puzzle = await GetPuzzleOrDefaultAsync(puzzleId);
+
+        return puzzle is not null;
+    }
+
     public async Task<Puzzle> GetPuzzleAsync(Guid puzzleId)
     {
-        using var db = await _dbContextFactory.CreateDbContextAsync();
-
-        Puzzle? puzzle = await db.Puzzles
-            .AsNoTracking()
-            .FirstOrDefaultAsync(p => p.Id == puzzleId);
+        Puzzle? puzzle = await GetPuzzleOrDefaultAsync(puzzleId);
 
         if (puzzle is null)
         {
@@ -230,6 +224,14 @@ public class PuzzleService : IPuzzleService
         }
     }
 
+    private async Task<Puzzle?> GetPuzzleOrDefaultAsync(Guid puzzleId)
+    {
+        using var db = await _dbContextFactory.CreateDbContextAsync();
+
+        return await db.Puzzles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Id == puzzleId);
+    }
     //private readonly IDbContextFactory<AlexordleDbContext> _dbContextFactory;
     //private readonly IGuidProvider _guidProvider;
     //private readonly IClueService _clueService;

@@ -1,19 +1,4 @@
-﻿using Alexordle.Client.Application.Database.Entities;
-using Alexordle.Client.Application.Models;
-using Alexordle.Client.Application.Services;
-using Alexordle.Client.Blazor.Notifications;
-using Alexordle.Client.Blazor.Validations;
-using Alexordle.Client.Blazor.Validations.RuleSets;
-using Alexordle.Client.Blazor.ViewModels.Pallete;
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-using Lexicom.Concentrate.Blazor.WebAssembly.Amenities.Notifications;
-using Lexicom.Concentrate.Blazor.WebAssembly.Amenities.Services;
-using Lexicom.DependencyInjection.Primitives;
-using Lexicom.Mvvm;
-using Lexicom.Validation;
-using MediatR;
-using System.Collections.ObjectModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Alexordle.Client.Blazor.ViewModels.Designer;
 public partial class DesignerPageViewModel : ObservableObject//, INotificationHandler<RefreshDesignerNotification>, INotificationHandler<RemoveClueInputNotification>, INotificationHandler<RemoveAnswerInputNotification>, INotificationHandler<PeriodicTickNotification>

@@ -1,6 +1,5 @@
 ﻿using Alexordle.Client.Application.Database;
 using Alexordle.Client.Application.Database.Entities;
-using Alexordle.Client.Application.Database.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace Alexordle.Client.Application.Services;
@@ -8,15 +7,6 @@ public interface IGuessService
 {
     Task<IReadOnlyList<string>> GetGuessInvariantTextsAsync(Guid puzzleId);
     Task<IReadOnlyList<Guess>> GetGuessesAsync(Guid puzzleId, int row);
-    //Task<IReadOnlyList<Guess>> GetCommittedGuessesAsync(Guid puzzleId);
-    //Task<IReadOnlyList<Guess>> GetGuessesAsync(Guid puzzleId);
-    //Task<Guess> GetGuessAsync(Guid guessWordId);
-    //Task<Guess> CreateGuessAsync(Guid puzzleId);
-    //Task<bool> IsCommittedGuessCorrectAsync(Guid guessWordId);
-    //Task<bool> IsAlreadyGuessedAsync(Guid guessWordId);
-    //Task<bool> IsGuessCompleteAsync(Guid guessWordId);
-    //Task SubmitGuessAsync(Guid guessWordId);
-    //Task DeleteGuessAsync(Guid guessWordId);
 }
 public class GuessService : IGuessService
 {

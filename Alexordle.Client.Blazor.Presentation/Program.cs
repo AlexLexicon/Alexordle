@@ -4,6 +4,7 @@ using Alexordle.Client.Application.Services;
 using Alexordle.Client.Blazor.Extensions;
 using Alexordle.Client.Blazor.Presentation;
 using Alexordle.Client.Blazor.Presentation.Services;
+using Blazored.LocalStorage;
 using Lexicom.Concentrate.Blazor.WebAssembly.Amenities.Extensions;
 using Lexicom.Concentrate.Blazor.WebAssembly.Amenities.Services;
 using Lexicom.Concentrate.Supports.Blazor.WebAssembly.Extensions;
@@ -61,6 +62,7 @@ builder.Services.AddViewModels();
 
 builder.Services.AddSingleton<IWordListsProvider, WordListProvider>();
 builder.Services.AddSingleton<IUrlService, UrlService>();
+builder.Services.AddSingleton<IStorageService, SessionStorageService>();
 builder.Services.AddHttpClient("wwwroot", (sp, hc) =>
 {
     var navigationService = sp.GetRequiredService<INavigationService>();
@@ -74,6 +76,7 @@ builder.Services.AddDbContextFactory<AlexordleDbContext>(options =>
 
     options.UseSqlite(connectionString);
 });
+builder.Services.AddBlazoredLocalStorageAsSingleton();
 
 var app = builder.Build();
 

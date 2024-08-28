@@ -1,9 +1,11 @@
 ﻿using Alexordle.Client.Application.Database.Entities;
 using Alexordle.Client.Application.Database.Models;
+using Alexordle.Client.Application.Exceptions;
 
 namespace Alexordle.Client.Application.Services;
 public interface IShareService
 {
+    /// <exception cref="PuzzleDoesNotExistException"></exception>
     Task<string> GenerateShareAsync(Guid puzzleId);
 }
 public class ShareService : IShareService
@@ -12,14 +14,14 @@ public class ShareService : IShareService
     private readonly IUrlService _urlService;
     private readonly IClueService _clueService;
     private readonly IGuessService _guessService;
-    private readonly ITransmissionService _transmissionService;
+    private readonly ISerializationService _transmissionService;
 
     public ShareService(
         IPuzzleService puzzleService,
         IUrlService urlService,
         IClueService clueService,
         IGuessService guessService,
-        ITransmissionService transmissionService)
+        ISerializationService transmissionService)
     {
         _puzzleService = puzzleService;
         _urlService = urlService;

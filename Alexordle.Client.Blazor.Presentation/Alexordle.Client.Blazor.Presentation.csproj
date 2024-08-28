@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Blazored.LocalStorage" Version="4.5.0" />
     <PackageReference Include="Lexicom.Concentrate.Blazor.WebAssembly.Amenities" Version="8.0.116" />
     <PackageReference Include="Lexicom.Concentrate.Blazor.WebAssembly.Components" Version="8.0.116" />
     <PackageReference Include="Lexicom.DependencyInjection.Primitives.For.Blazor.WebAssembly" Version="8.0.90" />

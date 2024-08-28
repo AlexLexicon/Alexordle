@@ -24,17 +24,20 @@ public class HunchService : IHunchService
     private readonly IDictionaryService _dictionaryService;
     private readonly IGuessService _guessService;
     private readonly IHintService _hintService;
+    private readonly IPersistenceService _persistenceService;
 
     public HunchService(
         IDbContextFactory<AlexordleDbContext> dbContextFactory,
         IDictionaryService dictionaryService,
         IGuessService guessService,
-        IHintService hintService)
+        IHintService hintService,
+        IPersistenceService persistenceService)
     {
         _dbContextFactory = dbContextFactory;
         _dictionaryService = dictionaryService;
         _guessService = guessService;
         _hintService = hintService;
+        _persistenceService = persistenceService;
     }
 
     public async Task<IReadOnlyList<Hunch>> GetHunchesAsync(Guid puzzleId)
@@ -202,5 +205,7 @@ public class HunchService : IHunchService
         db.RemoveRange(hunches);
 
         await db.SaveChangesAsync();
+
+        await _persistenceService.SaveAsync(puzzleId);
     }
 }

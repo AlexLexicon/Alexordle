@@ -1,13 +1,4 @@
-﻿using Alexordle.Client.Application.Database.Entities;
-using Alexordle.Client.Application.Services;
-using Alexordle.Client.Blazor.Notifications;
-using Alexordle.Client.Blazor.Validations.RuleSets;
-using Lexicom.DependencyInjection.Primitives;
-using Lexicom.Validation;
-using MediatR;
-using Microsoft.Extensions.Logging;
-
-namespace Alexordle.Client.Blazor.ViewModels.Designer;
+﻿namespace Alexordle.Client.Blazor.ViewModels.Designer;
 public partial class ClueInputViewModel : AbstractInputViewModel
 {
     //private readonly ILogger<ClueInputViewModel> _logger;

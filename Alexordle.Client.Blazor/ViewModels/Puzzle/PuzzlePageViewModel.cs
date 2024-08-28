@@ -1,10 +1,11 @@
 ﻿using Alexordle.Client.Application.Database.Entities;
+using Alexordle.Client.Application.Exceptions;
 using Alexordle.Client.Application.Services;
 using Alexordle.Client.Blazor.Exceptions;
 using Alexordle.Client.Blazor.Models;
 using Alexordle.Client.Blazor.Notifications;
-using Alexordle.Client.Blazor.ViewModels.Pallete;
 using Alexordle.Client.Blazor.ViewModels.Keyboard;
+using Alexordle.Client.Blazor.ViewModels.Pallete;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Lexicom.Concentrate.Blazor.WebAssembly.Amenities.Services;
@@ -12,28 +13,32 @@ using MediatR;
 using Microsoft.Extensions.Logging;
 
 namespace Alexordle.Client.Blazor.ViewModels.Game;
-public partial class PuzzlePageViewModel : ObservableObject, INotificationHandler<PuzzleUpdateNotification>//, INotificationHandler<StateChangedNotification>
+public partial class PuzzlePageViewModel : ObservableObject, INotificationHandler<PuzzleUpdateNotification>, INotificationHandler<KeySubmitNotification>, INotificationHandler<KeyEnterNotification>, INotificationHandler<KeyBackspaceNotification>
 {
     private readonly ILogger<PuzzlePageViewModel> _logger;
     private readonly IMediator _mediator;
-    private readonly ITransmissionService _transmissionService;
+    private readonly ISerializationService _transmissionService;
     private readonly INavigationService _navigationService;
     private readonly IClipboardService _clipboardService;
     private readonly IShareService _shareService;
     private readonly IAnswerService _answerService;
     private readonly IClueService _clueService;
     private readonly IPuzzleService _puzzleService;
+    private readonly IPersistenceService _persistenceService;
+    private readonly IHunchService _hunchService;
 
     public PuzzlePageViewModel(
         ILogger<PuzzlePageViewModel> logger,
         IMediator mediator,
-        ITransmissionService transmissionService,
+        ISerializationService transmissionService,
         INavigationService navigationService,
         IClipboardService clipboardService,
         IShareService shareService,
         IAnswerService answerService,
         IClueService clueService,
         IPuzzleService puzzleService,
+        IPersistenceService persistenceService,
+        IHunchService hunchService,
         PalleteViewModel palleteViewModel,
         KeyboardViewModel keyboardViewModel,
         MessageViewModel messageViewModel)
@@ -47,6 +52,8 @@ public partial class PuzzlePageViewModel : ObservableObject, INotificationHandle
         _answerService = answerService;
         _clueService = clueService;
         _puzzleService = puzzleService;
+        _persistenceService = persistenceService;
+        _hunchService = hunchService;
 
         PalleteViewModel = palleteViewModel;
         KeyboardViewModel = keyboardViewModel;
@@ -56,6 +63,7 @@ public partial class PuzzlePageViewModel : ObservableObject, INotificationHandle
     public string? QueryString { get; set; }
 
     private Guid? PuzzleId { get; set; }
+    private string? SerializedPuzzle { get; set; }
 
     [ObservableProperty]
     private PalleteViewModel _palleteViewModel;
@@ -77,9 +85,22 @@ public partial class PuzzlePageViewModel : ObservableObject, INotificationHandle
 
     public async Task Handle(PuzzleUpdateNotification notification, CancellationToken cancellationToken)
     {
-        Puzzle puzzle = await _puzzleService.GetPuzzleAsync(notification.PuzzleId);
+        await UpdateStateAsync();
+    }
 
-        IsComplete = puzzle.IsComplete;
+    public async Task Handle(KeySubmitNotification notification, CancellationToken cancellationToken)
+    {
+        await SubmitAsync(notification.InvariantCharacter);
+    }
+
+    public async Task Handle(KeyEnterNotification notification, CancellationToken cancellationToken)
+    {
+        await EnterAsync();
+    }
+
+    public async Task Handle(KeyBackspaceNotification notification, CancellationToken cancellationToken)
+    {
+        await BackspaceAsync();
     }
 
     [RelayCommand]
@@ -89,28 +110,21 @@ public partial class PuzzlePageViewModel : ObservableObject, INotificationHandle
         {
             try
             {
-                if (QueryString is null)
-                {
-                    throw new NullQueryStringException();
-                }
+                SerializedPuzzle = QueryString;
 
-                Puzzle puzzle = await _transmissionService.DeserializeAndStartPuzzleAsync(QueryString);
+                PuzzleId = await LoadSerializedPuzzleAsync();
 
-                PuzzleId = puzzle.Id;
-
-                _logger.LogInformation("Starting Puzzle with the id '{puzzleId}'.", PuzzleId);
-
-                KeyboardViewModel.Create(PuzzleId.Value);
+                KeyboardViewModel.Create();
 
                 var publish = _mediator.Publish(new PuzzleUpdateNotification(PuzzleId.Value));
-                var generateExplanationTask = GenerateExplanationAsync(PuzzleId.Value);
+                var generateExplanationTask = GenerateExplanationAsync();
 
                 await publish;
                 await generateExplanationTask;
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "The puzzle failed to load from the query string '{queryString}'.", QueryString);
+                _logger.LogCritical(e, "The puzzle failed to load.");
 
                 IsFaulted = true;
             }
@@ -128,51 +142,177 @@ public partial class PuzzlePageViewModel : ObservableObject, INotificationHandle
     [RelayCommand]
     private async Task CopyShareAsync()
     {
-        if (PuzzleId is not null)
+        await AutoRecoverPuzzleAsync(async pi =>
         {
-            string share = await _shareService.GenerateShareAsync(PuzzleId.Value);
+            string share = await _shareService.GenerateShareAsync(pi);
 
             await _clipboardService.WriteAsync(share);
 
-            await _mediator.Publish(new SetMessageNotification(PuzzleId.Value, Message.CopiedShare));
+            await _mediator.Publish(new SetMessageNotification(pi, Message.CopiedShare));
+        });
+    }
+
+    private async Task UpdateStateAsync()
+    {
+        await AutoRecoverPuzzleAsync(async pi =>
+        {
+            Puzzle puzzle = await _puzzleService.GetPuzzleAsync(pi);
+
+            IsComplete = puzzle.IsComplete;
+        });
+    }
+
+    private async Task EnterAsync()
+    {
+        await AutoRecoverPuzzleAsync(async pi =>
+        {
+            try
+            {
+                await _hunchService.SubmitHunchAsync(pi);
+
+                await _mediator.Publish(new PuzzleUpdateNotification(pi));
+            }
+            catch (IncompleteGuessException)
+            {
+                await _mediator.Publish(new SetMessageNotification(pi, Message.IncompeleteGuess));
+            }
+            catch (IncorrectSpellingException)
+            {
+                await _mediator.Publish(new SetMessageNotification(pi, Message.IncorrectSpelling));
+            }
+            catch (DuplicateGuessException)
+            {
+                await _mediator.Publish(new SetMessageNotification(pi, Message.AlreadyGuessed));
+            }
+        });
+    }
+
+    private async Task BackspaceAsync()
+    {
+        await AutoRecoverPuzzleAsync(async pi =>
+        {
+            await _hunchService.RemoveCharacterFromHunchAsync(pi);
+
+            await _mediator.Publish(new PuzzleUpdateNotification(pi));
+        });
+    }
+
+    private async Task SubmitAsync(char invariantCharacter)
+    {
+        await AutoRecoverPuzzleAsync(async pi =>
+        {
+            await _hunchService.AppendCharacterToHunchAsync(pi, invariantCharacter);
+
+            await _mediator.Publish(new PuzzleUpdateNotification(pi));
+        });
+    }
+
+    private async Task GenerateExplanationAsync()
+    {
+        await AutoRecoverPuzzleAsync(async pi =>
+        {
+            string explanation = string.Empty;
+
+            var getClueInvariantTextsTask = _clueService.GetClueInvariantTextsAsync(pi);
+            var getAnswerInvariantTextsTask = _answerService.GetAnswerInvariantTextsAsync(pi);
+
+            IReadOnlyList<string> clues = await getClueInvariantTextsTask;
+            for (int i = 0; i < clues.Count; i++)
+            {
+                if (i is > 0)
+                {
+                    explanation += " / ";
+                }
+
+                explanation += clues[i];
+            }
+
+            if (clues.Count > 0)
+            {
+                explanation += " » ";
+            }
+
+            IReadOnlyList<string> answers = await getAnswerInvariantTextsTask;
+            for (int i = 0; i < answers.Count; i++)
+            {
+                if (i is > 0)
+                {
+                    explanation += " + ";
+                }
+
+                explanation += answers[i];
+            }
+
+            Explanation = explanation;
+        });
+    }
+
+    private async Task AutoRecoverPuzzleAsync(Func<Guid, Task> operationDelegate)
+    {
+        if (PuzzleId is not null)
+        {
+            Guid puzzleId = PuzzleId.Value;
+            for (int retry = 0; retry < 2; retry++)
+            {
+                try
+                {
+                    try
+                    {
+                        bool exists = await _puzzleService.PuzzleExistsAsync(puzzleId);
+                        if (exists)
+                        {
+                            await operationDelegate(puzzleId);
+
+                            return;
+                        }
+                    }
+                    catch (PuzzleDoesNotExistException)
+                    {
+
+                    }
+
+                    if (retry is not 0)
+                    {
+                        throw new UnableToRecoverPuzzleException(puzzleId, SerializedPuzzle);
+                    }
+
+                    //after a while the sqlite database loses all of its memory in the browser
+                    //so we can load the puzzle again from local storage if it exists
+                    puzzleId = await LoadSerializedPuzzleAsync();
+
+                    PuzzleId = puzzleId;
+                }
+                catch (Exception e)
+                {
+                    _logger.LogCritical(e, "An unexpected error occured that could not be recovered from.");
+
+                    IsFaulted = true;
+                }
+            }
         }
     }
 
-    private async Task GenerateExplanationAsync(Guid puzzleId)
+    private async Task<Guid> LoadSerializedPuzzleAsync()
     {
-        string explanation = string.Empty;
-
-        var getClueInvariantTextsTask = _clueService.GetClueInvariantTextsAsync(puzzleId);
-        var getAnswerInvariantTextsTask = _answerService.GetAnswerInvariantTextsAsync(puzzleId);
-
-        IReadOnlyList<string> clues = await getClueInvariantTextsTask;
-        for (int i = 0; i < clues.Count; i++)
+        if (SerializedPuzzle is null)
         {
-            if (i is > 0)
-            {
-                explanation += " / ";
-            }
-
-            explanation += clues[i];
+            throw new SerializedPuzzleIsNullException();
         }
 
-        if (clues.Count > 0)
+        Guid? puzzleId = await _persistenceService.LoadAsync(SerializedPuzzle);
+        if (puzzleId is null)
         {
-            explanation += " » ";
+            Puzzle puzzle = await _transmissionService.DeserializeAndStartPuzzleAsync(SerializedPuzzle);
+
+            puzzleId = puzzle.Id;
         }
 
-        IReadOnlyList<string> answers = await getAnswerInvariantTextsTask;
-        for (int i = 0; i < answers.Count; i++)
+        if (puzzleId is not null)
         {
-            if (i is > 0)
-            {
-                explanation += " + ";
-            }
-
-            explanation += answers[i];
+            return puzzleId.Value;
         }
 
-        Explanation = explanation;
+        throw new PuzzleDeserializationException(SerializedPuzzle);
     }
 
     //private readonly ILogger<GamePageViewModel> _logger;

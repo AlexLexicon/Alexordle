@@ -7,9 +7,6 @@ public interface IClueService
 {
     Task<IReadOnlyList<string>> GetClueInvariantTextsAsync(Guid puzzleId);
     Task<IReadOnlyList<Clue>> GetCluesAsync(Guid puzzleId, int row);
-    //Task<IReadOnlyList<Clue>> GetCluesAsync(Guid puzzleId);
-    //Task<Clue> CreateClueAsync(Guid puzzleId, string clue);
-    //Task DeleteClueAsync(Guid clueWordId);
 }
 public class ClueService : IClueService
 {
