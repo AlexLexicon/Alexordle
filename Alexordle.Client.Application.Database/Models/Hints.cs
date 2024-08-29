@@ -2,7 +2,7 @@
 public enum Hints
 {
     None,
-    Wrong,
+    Incorrect,
     Elsewhere,
     Correct,
 }

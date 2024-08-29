@@ -34,7 +34,14 @@ else
             {
                 <RowView ViewModel="guessRowViewModel" />
             }
-            <RowView ViewModel="ViewModel.HunchRowViewModel" />
+            @if (!ViewModel.IsFinished)
+            {
+                <RowView ViewModel="ViewModel.HunchRowViewModel" />
+            }
+            @foreach (RowViewModel remainingRowViewModel in ViewModel.RemainingRowViewModels)
+            {
+                <RowView ViewModel="remainingRowViewModel" />
+            }
         </div>
     </div>
 }

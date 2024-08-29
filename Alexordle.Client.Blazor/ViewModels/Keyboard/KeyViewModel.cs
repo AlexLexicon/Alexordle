@@ -6,17 +6,20 @@ using CommunityToolkit.Mvvm.Input;
 using MediatR;
 
 namespace Alexordle.Client.Blazor.ViewModels.Keyboard;
-public partial class KeyViewModel : ObservableObject, INotificationHandler<PuzzleUpdateNotification>
+public partial class KeyViewModel : ObservableObject, INotificationHandler<PuzzleSubmitNotification>
 {
     private readonly IMediator _mediator;
     private readonly IHintService _hintService;
+    private readonly IAnswerService _answerService;
 
     public KeyViewModel(
         IMediator mediator,
-        IHintService hintService)
+        IHintService hintService,
+        IAnswerService answerService)
     {
         _mediator = mediator;
         _hintService = hintService;
+        _answerService = answerService;
     }
 
     private char? InvariantCharacter { get; set; }
@@ -37,7 +40,7 @@ public partial class KeyViewModel : ObservableObject, INotificationHandler<Puzzl
         InvariantCharacter = invariantCharacter;
     }
 
-    public async Task Handle(PuzzleUpdateNotification notification, CancellationToken cancellationToken)
+    public async Task Handle(PuzzleSubmitNotification notification, CancellationToken cancellationToken)
     {
         await UpdateAsync(notification.PuzzleId);
     }
@@ -46,7 +49,15 @@ public partial class KeyViewModel : ObservableObject, INotificationHandler<Puzzl
     {
         if (InvariantCharacter is not null)
         {
-            Hint = await _hintService.GetHighestHintAsync(puzzleId, InvariantCharacter.Value);
+            bool isAnswered = await _answerService.IsAnsweredAsync(puzzleId, InvariantCharacter.Value);
+
+            Hints hint = Hints.Incorrect;
+            if (!isAnswered)
+            {
+                hint = await _hintService.GetKeyboardHintAsync(puzzleId, InvariantCharacter.Value);
+            }
+
+            Hint = hint;
         }
     }
 

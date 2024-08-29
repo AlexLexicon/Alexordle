@@ -16,9 +16,13 @@ public class AlexordleDbContext : DbContext
         base.OnModelCreating(modelBuilder);
     }
 
-    public DbSet<Answer> Answers { get; set; }
-    public DbSet<Clue> Clues { get; set; }
-    public DbSet<Guess> Guesses { get; set; }
-    public DbSet<Hunch> Hunches { get; set; }
     public DbSet<Puzzle> Puzzles { get; set; }
+    public DbSet<Answer> Answers { get; set; }
+    public DbSet<AnswerCharacter> AnswerCharacters { get; set; }
+    public DbSet<Clue> Clues { get; set; }
+    public DbSet<ClueCharacter> ClueCharacters { get; set; }
+    public DbSet<Guess> Guesses { get; set; }
+    public DbSet<GuessCharacter> GuessCharacters { get; set; }
+    public DbSet<Hunch> Hunches { get; set; }
+    public DbSet<HunchCharacter> HunchCharacters { get; set; }
 }

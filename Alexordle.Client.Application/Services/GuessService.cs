@@ -1,12 +1,15 @@
 ﻿using Alexordle.Client.Application.Database;
 using Alexordle.Client.Application.Database.Entities;
+using Alexordle.Client.Application.Exceptions;
 using Microsoft.EntityFrameworkCore;
 
 namespace Alexordle.Client.Application.Services;
 public interface IGuessService
 {
+    /// <exception cref="GuessDoesNotExistException"></exception>
+    Task<Guess> GetGuessAsync(Guid guessId);
     Task<IReadOnlyList<string>> GetGuessInvariantTextsAsync(Guid puzzleId);
-    Task<IReadOnlyList<Guess>> GetGuessesAsync(Guid puzzleId, int row);
+    Task<IReadOnlyList<GuessCharacter>> GetGuessesAsync(Guid puzzleId, int row);
 }
 public class GuessService : IGuessService
 {
@@ -17,42 +20,61 @@ public class GuessService : IGuessService
         _dbContextFactory = dbContextFactory;
     }
 
+    public async Task<Guess> GetGuessAsync(Guid guessId)
+    {
+        using var db = await _dbContextFactory.CreateDbContextAsync();
+
+        Guess? guess = await db.Guesses.FirstOrDefaultAsync(g => g.Id == guessId);
+        if (guess is null)
+        {
+            throw new GuessDoesNotExistException(guessId);
+        }
+
+        return guess;
+    }
+
     public async Task<IReadOnlyList<string>> GetGuessInvariantTextsAsync(Guid puzzleId)
     {
         using var db = await _dbContextFactory.CreateDbContextAsync();
 
-        List<IGrouping<int, Guess>> guessGroups = await db.Guesses
-            .AsNoTracking()
-            .Where(a => a.PuzzleId == puzzleId)
-            .GroupBy(a => a.Row)
-            .ToListAsync();
+        return await db.Guesses
+             .Where(a => a.PuzzleId == puzzleId)
+             .OrderBy(a => a.InvariantText)
+             .Select(a => a.InvariantText)
+             .ToListAsync();
+        //List<IGrouping<int, GuessCharacter>> guessGroups = await db.GuessCharacters
+        //    .AsNoTracking()
+        //    .Where(g => g.PuzzleId == puzzleId)
+        //    .GroupBy(g => g.Row)
+        //    .ToListAsync();
 
-        var guessRowToInvariantTexts = new Dictionary<int, string>();
-        foreach (IGrouping<int, Guess> guessGroup in guessGroups)
-        {
-            foreach (Guess guess in guessGroup)
-            {
-                if (guessRowToInvariantTexts.TryGetValue(guess.Row, out string? invariantText))
-                {
-                    guessRowToInvariantTexts[guess.Row] = $"{invariantText}{guess.InvariantCharacter}";
-                }
-                else
-                {
-                    guessRowToInvariantTexts.Add(guess.Row, $"{guess.InvariantCharacter}");
-                }
-            }
-        }
+        //var guessRowToInvariantTexts = new Dictionary<int, string>();
+        //foreach (IGrouping<int, GuessCharacter> guessGroup in guessGroups)
+        //{
+        //    foreach (GuessCharacter guess in guessGroup)
+        //    {
+        //        if (guessRowToInvariantTexts.TryGetValue(guess.Row, out string? invariantText))
+        //        {
+        //            guessRowToInvariantTexts[guess.Row] = $"{invariantText}{guess.InvariantCharacter}";
+        //        }
+        //        else
+        //        {
+        //            guessRowToInvariantTexts.Add(guess.Row, $"{guess.InvariantCharacter}");
+        //        }
+        //    }
+        //}
 
-        return guessRowToInvariantTexts.Values.ToList();
+        //return guessRowToInvariantTexts.Values.ToList();
     }
 
-    public async Task<IReadOnlyList<Guess>> GetGuessesAsync(Guid puzzleId, int row)
+    public async Task<IReadOnlyList<GuessCharacter>> GetGuessesAsync(Guid puzzleId, int row)
     {
         using var db = await _dbContextFactory.CreateDbContextAsync();
 
-        return await db.Guesses
+        return await db.GuessCharacters
             .AsNoTracking()
-            .Where(c => c.PuzzleId == puzzleId && c.Row == row)
+            .Where(g => g.PuzzleId == puzzleId && g.Row == row)
+            .OrderBy(g => g.Column)
             .ToListAsync();
     }
     //private readonly IDbContextFactory<AlexordleDbContext> _dbContextFactory;

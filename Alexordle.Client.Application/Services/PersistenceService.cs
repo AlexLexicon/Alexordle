@@ -5,7 +5,7 @@ namespace Alexordle.Client.Application.Services;
 public interface IPersistenceService
 {
     Task SaveAsync(Guid puzzleId);
-    Task<Guid?> LoadAsync(string serializedPuzzle);
+    Task<Puzzle?> LoadAsync(string serializedPuzzle);
 }
 public class PersistenceService : IPersistenceService
 {
@@ -34,7 +34,7 @@ public class PersistenceService : IPersistenceService
         await _storageService.Store(serializedPuzzle, serializedPallete);
     }
 
-    public async Task<Guid?> LoadAsync(string serializedPuzzle)
+    public async Task<Puzzle?> LoadAsync(string serializedPuzzle)
     {
         try
         {
@@ -45,7 +45,7 @@ public class PersistenceService : IPersistenceService
                 Puzzle puzzle = await _serializationService.DeserializeAndStartPuzzleAsync(serializedPuzzle);
                 await _serializationService.DeserializePalleteAsync(puzzle.Id, serializedPallete);
 
-                return puzzle.Id;
+                return puzzle;
             }
         }
         catch (Exception e)

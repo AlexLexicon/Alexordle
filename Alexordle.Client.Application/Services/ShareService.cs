@@ -36,7 +36,7 @@ public class ShareService : IShareService
 
         var serializePuzzleTask = _transmissionService.SerializePuzzleAsync(puzzleId);
 
-        bool isDefeat = puzzle.IsComplete && puzzle.TotalAnswers - puzzle.CurrentAnswers > 0;
+        bool isDefeat = puzzle.IsFinished && puzzle.TotalAnswers - puzzle.CurrentAnswers > 0;
 
         string share = $"alexordle {(isDefeat ? "?" : puzzle.CurrentGuesses)}/{puzzle.MaxGuesses}{Environment.NewLine}";
 
@@ -45,12 +45,12 @@ public class ShareService : IShareService
         bool complete = false;
         while (!complete)
         {
-            IReadOnlyList<Clue> clues = await _clueService.GetCluesAsync(puzzleId, row);
+            IReadOnlyList<ClueCharacter> clues = await _clueService.GetCluesAsync(puzzleId, row);
 
             complete = clues.Count is <= 0;
             if (!complete)
             {
-                foreach (Clue clue in clues)
+                foreach (ClueCharacter clue in clues)
                 {
                     hasClues = true;
 
@@ -77,13 +77,13 @@ public class ShareService : IShareService
         complete = false;
         while (!complete)
         {
-            IReadOnlyList<Guess> guesses = await _guessService.GetGuessesAsync(puzzleId, row);
+            IReadOnlyList<GuessCharacter> guesses = await _guessService.GetGuessesAsync(puzzleId, row);
 
             complete = guesses.Count is <= 0;
             if (!complete)
             {
 
-                foreach (Guess guess in guesses)
+                foreach (GuessCharacter guess in guesses)
                 {
                     share += GetCell(guess.Hint);
                 }

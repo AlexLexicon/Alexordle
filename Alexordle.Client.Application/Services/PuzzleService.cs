@@ -75,14 +75,14 @@ public class PuzzleService : IPuzzleService
 
         var answersList = answers.ToList();
 
-        if (answersList.Count is < Answer.VALIDATION_COUNT_MINIMUM)
+        if (answersList.Count is < AnswerCharacter.VALIDATION_COUNT_MINIMUM)
         {
-            throw new ArgumentLessThanException(Answer.VALIDATION_COUNT_MINIMUM, answersList.Count);
+            throw new ArgumentLessThanException(AnswerCharacter.VALIDATION_COUNT_MINIMUM, answersList.Count);
         }
 
-        if (answersList.Count is > Answer.VALIDATION_COUNT_MAXIMUM)
+        if (answersList.Count is > AnswerCharacter.VALIDATION_COUNT_MAXIMUM)
         {
-            throw new ArgumentGreaterThanException(Answer.VALIDATION_COUNT_MAXIMUM, answersList.Count);
+            throw new ArgumentGreaterThanException(AnswerCharacter.VALIDATION_COUNT_MAXIMUM, answersList.Count);
         }
 
         var cluesList = clues.ToList();
@@ -96,7 +96,7 @@ public class PuzzleService : IPuzzleService
             CurrentAnswers = 0,
             MaxGuesses = maxGuesses,
             CurrentGuesses = 0,
-            IsComplete = false,
+            IsFinished = false,
         };
 
         using var db = await _dbContextFactory.CreateDbContextAsync();
@@ -123,12 +123,12 @@ public class PuzzleService : IPuzzleService
                 {
                     char invariantCharacter = invariantText[column];
 
-                    if (!Answer.VALIDATION_CHARACTERS_SUPPORTED.Contains(invariantCharacter))
+                    if (!AnswerCharacter.VALIDATION_CHARACTERS_SUPPORTED.Contains(invariantCharacter))
                     {
                         throw new AnswerCharacterNotSupportedException(invariantCharacter, invariantText);
                     }
 
-                    bool anotherAnswerContainsCharacter = await db.Answers
+                    bool anotherAnswerContainsCharacter = await db.AnswerCharacters
                         .AsNoTracking()
                         .AnyAsync(ac => ac.AnswerId != answerId && ac.InvariantCharacter == invariantCharacter);
 
@@ -137,7 +137,7 @@ public class PuzzleService : IPuzzleService
                         throw new DuplicateAnswerCharacterException(invariantCharacter);
                     }
 
-                    await db.Answers.AddAsync(new Answer
+                    await db.AnswerCharacters.AddAsync(new AnswerCharacter
                     {
                         PuzzleId = puzzle.Id,
                         AnswerId = answerId,
@@ -147,6 +147,14 @@ public class PuzzleService : IPuzzleService
 
                     await db.SaveChangesAsync();
                 }
+
+                await db.Answers.AddAsync(new Answer
+                {
+                    Id = answerId,
+                    PuzzleId = puzzle.Id,
+                    InvariantText = invariantText,
+                    IsSolved = false,
+                });
             }
 
             for (int row = 0; row < cluesList.Count; row++)
@@ -158,19 +166,22 @@ public class PuzzleService : IPuzzleService
                     throw new WidthMismatchException(invariantText, invariantText.Length, puzzle.Width);
                 }
 
-                var createdClues = new List<Clue>();
+                Guid clueId = _guidProvider.NewGuid();
+
+                var createdClues = new List<ClueCharacter>();
                 for (int column = 0; column < invariantText.Length; column++)
                 {
                     char invariantCharacter = invariantText[column];
 
-                    if (!Clue.VALIDATION_CHARACTERS_SUPPORTED.Contains(invariantCharacter))
+                    if (!ClueCharacter.VALIDATION_CHARACTERS_SUPPORTED.Contains(invariantCharacter))
                     {
                         throw new ClueCharacterNotSupportedException(invariantCharacter, invariantText);
                     }
 
-                    var clue = new Clue
+                    var clue = new ClueCharacter
                     {
                         PuzzleId = puzzle.Id,
+                        ClueId = clueId,
                         Row = row,
                         Column = column,
                         InvariantCharacter = invariantCharacter,
@@ -179,7 +190,7 @@ public class PuzzleService : IPuzzleService
 
                     await _hintService.CalculateHintAsync(clue);
 
-                    await db.Clues.AddAsync(clue);
+                    await db.ClueCharacters.AddAsync(clue);
 
                     await db.SaveChangesAsync();
 
@@ -187,7 +198,21 @@ public class PuzzleService : IPuzzleService
                 }
 
                 await _hintService.PostCalculateHintsAsync(createdClues);
+
+                await db.Clues.AddAsync(new Clue
+                {
+                    Id = clueId,
+                    PuzzleId = puzzle.Id,
+                    InvariantText = invariantText,
+                });
             }
+
+            await db.Hunches.AddAsync(new Hunch
+            {
+                PuzzleId = puzzle.Id,
+                IsBonus = false,
+                IsInfinite = maxGuesses is null,
+            });
 
             await db.Puzzles.AddAsync(puzzle);
 
@@ -197,17 +222,17 @@ public class PuzzleService : IPuzzleService
         }
         catch
         {
-            List<Answer> answersToRemove = await db.Answers
+            List<AnswerCharacter> answersToRemove = await db.AnswerCharacters
                 .AsNoTracking()
                 .Where(a => a.PuzzleId == puzzle.Id)
                 .ToListAsync();
-            db.Answers.RemoveRange(answersToRemove);
+            db.AnswerCharacters.RemoveRange(answersToRemove);
 
-            List<Clue> cluesToRemove = await db.Clues
+            List<ClueCharacter> cluesToRemove = await db.ClueCharacters
                 .AsNoTracking()
                 .Where(c => c.PuzzleId == puzzle.Id)
                 .ToListAsync();
-            db.Clues.RemoveRange(cluesToRemove);
+            db.ClueCharacters.RemoveRange(cluesToRemove);
 
             Puzzle? puzzleToRemove = await db.Puzzles
                 .AsNoTracking()

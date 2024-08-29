@@ -1,6 +1,6 @@
 ﻿@inherits ParameterLayout<KeyViewModel>
 
-<button type="button" tabindex="-1" onclick="@ViewModel.SubmitKeyCommand.Bind()" class="flex items-center justify-center cursor-pointer text-xl m-0.5 min-h-10 p-0.5 uppercase rounded @(SelectCss()) @(ViewModel.IsWide ? "flex-[2_1_0%]" : "flex-1") border-[3px]">
+<button type="button" tabindex="-1" onclick="@ViewModel.SubmitKeyCommand.Bind()" class="flex items-center justify-center text-xl m-0.5 min-h-10 p-0.5 uppercase rounded @(SelectCss()) !cursor-pointer @(ViewModel.IsWide ? "flex-[2_1_0%]" : "flex-1") border-[3px]">
     @ViewModel.Text
 </button>
 
@@ -10,14 +10,19 @@
     {
         if (ViewModel.Hint is Hints.Correct)
         {
-            return "hint-correct";
+            return "hint-key-correct";
         }
 
         if (ViewModel.Hint is Hints.Elsewhere)
         {
-            return "hint-elsewhere";
+            return "hint-key-elsewhere";
         }
 
-        return "hint-incorrect";
+        if (ViewModel.Hint is Hints.Incorrect)
+        {
+            return "hint-key-incorrect";
+        }
+
+        return "hint-key-none";
     }
 }

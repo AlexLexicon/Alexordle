@@ -1,5 +1,6 @@
 ﻿using Alexordle.Client.Application.Database.Entities;
 using Alexordle.Client.Application.Database.Models;
+using Alexordle.Client.Application.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Lexicom.Mvvm;
 using System.Collections.ObjectModel;
@@ -8,10 +9,17 @@ namespace Alexordle.Client.Blazor.ViewModels.Pallete;
 public partial class RowViewModel : ObservableObject
 {
     private readonly IViewModelFactory _viewModelFactory;
+    private readonly IGuessService _guessService;
+    private readonly IHunchService _hunchService;
 
-    public RowViewModel(IViewModelFactory viewModelFactory)
+    public RowViewModel(
+        IViewModelFactory viewModelFactory,
+        IGuessService guessService,
+        IHunchService hunchService)
     {
         _viewModelFactory = viewModelFactory;
+        _guessService = guessService;
+        _hunchService = hunchService;
 
         CellViewModels = [];
     }
@@ -20,49 +28,78 @@ public partial class RowViewModel : ObservableObject
     private ObservableCollection<CellViewModel> _cellViewModels;
 
     [ObservableProperty]
-    private string? _annotation;
+    private bool _isBonus;
 
-    public void Set(int width, IEnumerable<Clue> clues)
+    [ObservableProperty]
+    private bool _isHuh;
+
+    [ObservableProperty]
+    private bool _isInfinite;
+
+    public void Set(int width, IEnumerable<ClueCharacter> clues)
     {
         CellViewModels.Clear();
 
-        foreach (Clue clue in clues)
+        foreach (ClueCharacter clue in clues)
         {
             Create(width, clue.InvariantCharacter, clue.Hint, isHunch: false);
         }
-
-        //Annotation = Row.Annotation switch
-        //{
-        //    Annotations.Huh => "Huh?",
-        //    Annotations.Bonus => "Bonus!",
-        //    _ => string.Empty,
-        //};
     }
 
-    public void Set(int width, IEnumerable<Guess> guesses)
+    public async void Set(int width, IEnumerable<GuessCharacter> guesses)
     {
         CellViewModels.Clear();
 
-        foreach (Guess guess in guesses)
+        Guess? guess = null;
+        foreach (GuessCharacter guessCharacter in guesses)
         {
-            Create(width, guess.InvariantCharacter, guess.Hint, isHunch: false);
+            guess ??= await _guessService.GetGuessAsync(guessCharacter.GuessId);
+
+            Create(width, guessCharacter.InvariantCharacter, guessCharacter.Hint, isHunch: false);
+        }
+
+        if (guess is not null)
+        {
+            IsInfinite = false;
+            IsBonus = guess.IsBonus;
+            IsHuh = guess.IsHuh;
         }
     }
 
-    public void Set(int width, IEnumerable<Hunch> hunches)
+    public async void Set(Guid puzzleId, int width, IEnumerable<HunchCharacter> hunches)
     {
         CellViewModels.Clear();
+
+        Hunch? hunch = null;
 
         var hunchesList = hunches.ToList();
         for (int count = 0; count < width; count++)
         {
-            Hunch? hunch = null;
+            hunch ??= await _hunchService.GetHunchAsync(puzzleId);
+
+            HunchCharacter? hunchCharacter = null;
             if (count < hunchesList.Count)
             {
-                hunch = hunchesList[count];
+                hunchCharacter = hunchesList[count];
             }
 
-            Create(width, hunch?.InvariantCharacter, hunch?.Hint ?? Hints.None, isHunch: true);
+            Create(width, hunchCharacter?.InvariantCharacter, hunchCharacter?.Hint ?? Hints.None, isHunch: true);
+        }
+
+        if (hunch is not null)
+        {
+            IsInfinite = hunch.IsInfinite;
+            IsBonus = hunch.IsBonus;
+        }
+    }
+
+    public void Set(int width)
+    {
+        CellViewModels.Clear();
+
+        for (int count = 0; count < width; count++)
+        {
+            Create(width, null, Hints.None, isHunch: false);
         }
     }
 

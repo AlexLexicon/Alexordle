@@ -6,6 +6,7 @@ using System.Web;
 namespace Alexordle.Client.Application.Services;
 public interface ISerializationService
 {
+    Task<string> EncodeSerializedPuzzleForUrlAsync(string decodedBase64SerializedPuzzleString);
     /// <exception cref="PuzzleDoesNotExistException"></exception>
     Task<string> SerializePuzzleAsync(Guid puzzleId);
     Task<string> SerializePalleteAsync(Guid puzzleId);
@@ -39,6 +40,13 @@ public class SerializationService : ISerializationService
         _hunchService = hunchService;
     }
 
+    public Task<string> EncodeSerializedPuzzleForUrlAsync(string decodedBase64SerializedPuzzleString)
+    {
+        string encodedBase64SerializedPuzzleString = HttpUtility.UrlEncode(decodedBase64SerializedPuzzleString);
+
+        return Task.FromResult(encodedBase64SerializedPuzzleString);
+    }
+
     public async Task<string> SerializePuzzleAsync(Guid puzzleId)
     {
         try
@@ -67,15 +75,15 @@ public class SerializationService : ISerializationService
                 throw new Exception($"The special chracters '{SERIALIZATION_DELIMITER_PRIMARY}' and '{SERIALIZATION_DELIMITER_SECONDARY}' cannot be provided.");
             }
 
-            string packString = string.Join(SERIALIZATION_DELIMITER_PRIMARY, maxGuessesString, widthString, isSpellCheckingString, cluesString, answersString);
+            string decodedSerializedPuzzleString = string.Join(SERIALIZATION_DELIMITER_PRIMARY, maxGuessesString, widthString, isSpellCheckingString, cluesString, answersString);
 
-            packString += SERIALIZATION_DELIMITER_PRIMARY; //we append the delimiter at the end to better detect malformed codes.
+            decodedSerializedPuzzleString += SERIALIZATION_DELIMITER_PRIMARY; //we append the delimiter at the end to better detect malformed codes.
 
-            byte[] packBytes = Encoding.Default.GetBytes(packString);
+            byte[] decodedSerializedPuzzleBytes = Encoding.Default.GetBytes(decodedSerializedPuzzleString);
 
-            string packBase64 = Convert.ToBase64String(packBytes);
+            string decodedBase64SerializedPuzzleString = Convert.ToBase64String(decodedSerializedPuzzleBytes);
 
-            return HttpUtility.UrlEncode(packBase64);
+            return await EncodeSerializedPuzzleForUrlAsync(decodedBase64SerializedPuzzleString);
         }
         catch (Exception e)
         {
@@ -95,9 +103,9 @@ public class SerializationService : ISerializationService
             bool complete = false;
             while (!complete)
             {
-                IReadOnlyList<Guess> guesses = await _guessService.GetGuessesAsync(puzzleId, row);
+                IReadOnlyList<GuessCharacter> guesses = await _guessService.GetGuessesAsync(puzzleId, row);
 
-                foreach (Guess guess in guesses)
+                foreach (GuessCharacter guess in guesses)
                 {
                     char invariantCharacter = guess.InvariantCharacter;
                     if (invariantCharacter is SERIALIZATION_DELIMITER_PRIMARY or SERIALIZATION_DELIMITER_SECONDARY)
@@ -115,8 +123,8 @@ public class SerializationService : ISerializationService
             serializedPallete = serializedPallete.TrimEnd(SERIALIZATION_DELIMITER_SECONDARY);
             serializedPallete += SERIALIZATION_DELIMITER_PRIMARY;
 
-            IReadOnlyList<Hunch> hunches = await getHunchesTask;
-            foreach (Hunch hunch in hunches)
+            IReadOnlyList<HunchCharacter> hunches = await getHunchesTask;
+            foreach (HunchCharacter hunch in hunches)
             {
                 char invariantCharacter = hunch.InvariantCharacter;
                 if (invariantCharacter is SERIALIZATION_DELIMITER_PRIMARY or SERIALIZATION_DELIMITER_SECONDARY)

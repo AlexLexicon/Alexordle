@@ -39,6 +39,7 @@ public partial class PalleteViewModel : ObservableObject, INotificationHandler<P
 
         ClueRowViewModels = [];
         GuessRowViewModels = [];
+        RemainingRowViewModels = [];
         HunchRowViewModel = hunchRowViewModel;
     }
 
@@ -52,6 +53,9 @@ public partial class PalleteViewModel : ObservableObject, INotificationHandler<P
     private ObservableCollection<RowViewModel> _guessRowViewModels;
 
     [ObservableProperty]
+    private ObservableCollection<RowViewModel> _remainingRowViewModels;
+
+    [ObservableProperty]
     private RowViewModel _hunchRowViewModel;
 
     [ObservableProperty]
@@ -59,6 +63,9 @@ public partial class PalleteViewModel : ObservableObject, INotificationHandler<P
 
     [ObservableProperty]
     private int _width;
+
+    [ObservableProperty]
+    private bool _isFinished;
 
     public async Task Handle(PuzzleUpdateNotification notification, CancellationToken cancellationToken)
     {
@@ -71,6 +78,9 @@ public partial class PalleteViewModel : ObservableObject, INotificationHandler<P
         {
             IsFaulted = false;
 
+            Puzzle puzzle = await _puzzleService.GetPuzzleAsync(puzzleId);
+            IsFinished = puzzle.IsFinished;
+
             int row;
             bool isComplete = false;
             if (puzzleId != PuzzleId)
@@ -78,14 +88,12 @@ public partial class PalleteViewModel : ObservableObject, INotificationHandler<P
                 ClueRowViewModels.Clear();
                 GuessRowViewModels.Clear();
 
-                Puzzle puzzle = await _puzzleService.GetPuzzleAsync(puzzleId);
-
                 Width = puzzle.Width;
 
                 row = 0;
                 while (!isComplete)
                 {
-                    IReadOnlyList<Clue> clues = await _clueService.GetCluesAsync(puzzleId, row);
+                    IReadOnlyList<ClueCharacter> clues = await _clueService.GetCluesAsync(puzzleId, row);
 
                     isComplete = clues.Count is <= 0;
                     if (!isComplete)
@@ -108,7 +116,7 @@ public partial class PalleteViewModel : ObservableObject, INotificationHandler<P
             isComplete = false;
             while (!isComplete)
             {
-                IReadOnlyList<Guess> guesses = await _guessService.GetGuessesAsync(puzzleId, row);
+                IReadOnlyList<GuessCharacter> guesses = await _guessService.GetGuessesAsync(puzzleId, row);
 
                 isComplete = guesses.Count is <= 0;
                 if (!isComplete)
@@ -123,9 +131,48 @@ public partial class PalleteViewModel : ObservableObject, INotificationHandler<P
                 }
             }
 
-            IReadOnlyList<Hunch> hunches = await _hunchService.GetHunchesAsync(puzzleId);
+            int remaining = puzzle.MaxGuesses is null ? 0 : puzzle.MaxGuesses.Value - puzzle.CurrentGuesses - (!IsFinished ? 1 : 0);
+            if (remaining != RemainingRowViewModels.Count)
+            {
+                RemainingRowViewModels.Clear();
+                for (int count = 0; count < remaining; count++)
+                {
+                    RowViewModel remainingRowViewModel = _viewModelFactory.Create<RowViewModel>();
 
-            HunchRowViewModel.Set(Width, hunches);
+                    remainingRowViewModel.Set(Width);
+
+                    RemainingRowViewModels.Add(remainingRowViewModel);
+                }
+            }
+
+            //int remaining = puzzle. (GuessRowViewModels.Count + (!IsFinished ? 1 : 0))
+
+            //int remainingGuesses = 1;
+            //if (MaxGuesses is not null)
+            //{
+            //    remainingGuesses = MaxGuesses.Value - GuessRowViewModels.Count;
+            //}
+
+            //IsComplete = remainingGuesses is <= 0;
+
+            IReadOnlyList<HunchCharacter> hunches = await _hunchService.GetHunchesAsync(puzzleId);
+
+            HunchRowViewModel.Set(puzzleId, Width, hunches);
+
+            //remainingGuesses--;
+
+            //if (remainingGuesses is > 1 && RemainingRowViewModels.Count != remainingGuesses)
+            //{
+            //    RemainingRowViewModels.Clear();
+            //    for (int count = 0; count < remainingGuesses; count++)
+            //    {
+            //        RowViewModel remainingRowViewModel = _viewModelFactory.Create<RowViewModel>();
+
+            //        remainingRowViewModel.Set(Width);
+
+            //        RemainingRowViewModels.Add(remainingRowViewModel);
+            //    }
+            //}
 
             LastGuessRow = row;
 

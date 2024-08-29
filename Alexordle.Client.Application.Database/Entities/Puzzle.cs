@@ -16,7 +16,7 @@ public class Puzzle : IEntityTypeConfiguration<Puzzle>
     public required int CurrentAnswers { get; set; }
     public required int? MaxGuesses { get; init; }
     public required int CurrentGuesses { get; set; }
-    public required bool IsComplete { get; set; }
+    public required bool IsFinished { get; set; }
 
     public void Configure(EntityTypeBuilder<Puzzle> builder)
     {

@@ -6,7 +6,7 @@ namespace Alexordle.Client.Application.Services;
 public interface IClueService
 {
     Task<IReadOnlyList<string>> GetClueInvariantTextsAsync(Guid puzzleId);
-    Task<IReadOnlyList<Clue>> GetCluesAsync(Guid puzzleId, int row);
+    Task<IReadOnlyList<ClueCharacter>> GetCluesAsync(Guid puzzleId, int row);
 }
 public class ClueService : IClueService
 {
@@ -21,41 +21,46 @@ public class ClueService : IClueService
     {
         using var db = await _dbContextFactory.CreateDbContextAsync();
 
-        List<IGrouping<int, Clue>> clueGroups = await db.Clues
-            .AsNoTracking()
-            .Where(a => a.PuzzleId == puzzleId)
-            .GroupBy(a => a.Row)
-            .ToListAsync();
+        return await db.Clues
+             .Where(a => a.PuzzleId == puzzleId)
+             .OrderBy(a => a.InvariantText)
+             .Select(a => a.InvariantText)
+             .ToListAsync();
+        //List<IGrouping<int, ClueCharacter>> clueGroups = await db.ClueCharacters
+        //    .AsNoTracking()
+        //    .Where(c => c.PuzzleId == puzzleId)
+        //    .GroupBy(c => c.Row)
+        //    .ToListAsync();
 
-        var clueRowToInvariantTexts = new Dictionary<int, string>();
-        foreach (IGrouping<int, Clue> clueGroup in clueGroups)
-        {
-            foreach (Clue clue in clueGroup)
-            {
-                if (clueRowToInvariantTexts.TryGetValue(clue.Row, out string? invariantText))
-                {
-                    clueRowToInvariantTexts[clue.Row] = $"{invariantText}{clue.InvariantCharacter}";
-                }
-                else
-                {
-                    clueRowToInvariantTexts.Add(clue.Row, $"{clue.InvariantCharacter}");
-                }
-            }
-        }
+        //var clueRowToInvariantTexts = new Dictionary<int, string>();
+        //foreach (IGrouping<int, ClueCharacter> clueGroup in clueGroups)
+        //{
+        //    foreach (ClueCharacter clue in clueGroup)
+        //    {
+        //        if (clueRowToInvariantTexts.TryGetValue(clue.Row, out string? invariantText))
+        //        {
+        //            clueRowToInvariantTexts[clue.Row] = $"{invariantText}{clue.InvariantCharacter}";
+        //        }
+        //        else
+        //        {
+        //            clueRowToInvariantTexts.Add(clue.Row, $"{clue.InvariantCharacter}");
+        //        }
+        //    }
+        //}
 
-        return clueRowToInvariantTexts.Values
-            .Order()
-            .ToList();
+        //return clueRowToInvariantTexts.Values
+        //    .Order()
+        //    .ToList();
     }
 
-    public async Task<IReadOnlyList<Clue>> GetCluesAsync(Guid puzzleId, int row)
+    public async Task<IReadOnlyList<ClueCharacter>> GetCluesAsync(Guid puzzleId, int row)
     {
         using var db = await _dbContextFactory.CreateDbContextAsync();
 
-        return await db.Clues
+        return await db.ClueCharacters
             .AsNoTracking()
             .Where(c => c.PuzzleId == puzzleId && c.Row == row)
-            .OrderBy(c => c.InvariantCharacter)
+            .OrderBy(c => c.Column)
             .ToListAsync();
     }
     //private readonly IDbContextFactory<AlexordleDbContext> _dbContextFactory;

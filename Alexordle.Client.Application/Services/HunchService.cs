@@ -2,12 +2,15 @@
 using Alexordle.Client.Application.Database.Entities;
 using Alexordle.Client.Application.Database.Models;
 using Alexordle.Client.Application.Exceptions;
+using Lexicom.DependencyInjection.Primitives;
 using Microsoft.EntityFrameworkCore;
 
 namespace Alexordle.Client.Application.Services;
 public interface IHunchService
 {
-    Task<IReadOnlyList<Hunch>> GetHunchesAsync(Guid puzzleId);
+    /// <exception cref="HunchDoesNotExistException"></exception>
+    Task<Hunch> GetHunchAsync(Guid puzzleId);
+    Task<IReadOnlyList<HunchCharacter>> GetHunchesAsync(Guid puzzleId);
     /// <exception cref="HunchCharacterNotSupportedException"></exception>
     /// <exception cref="PuzzleDoesNotExistException"></exception>
     Task AppendCharacterToHunchAsync(Guid puzzleId, char character);
@@ -16,6 +19,7 @@ public interface IHunchService
     /// <exception cref="IncompleteGuessException"></exception>
     /// <exception cref="IncorrectSpellingException"></exception>
     /// <exception cref="DuplicateGuessException"></exception>
+    /// <exception cref="HunchDoesNotExistException"></exception>
     Task SubmitHunchAsync(Guid puzzleId);
 }
 public class HunchService : IHunchService
@@ -24,24 +28,43 @@ public class HunchService : IHunchService
     private readonly IDictionaryService _dictionaryService;
     private readonly IGuessService _guessService;
     private readonly IHintService _hintService;
+    private readonly IGuidProvider _guidProvider;
 
     public HunchService(
         IDbContextFactory<AlexordleDbContext> dbContextFactory,
         IDictionaryService dictionaryService,
         IGuessService guessService,
-        IHintService hintService)
+        IHintService hintService,
+        IGuidProvider guidProvider)
     {
         _dbContextFactory = dbContextFactory;
         _dictionaryService = dictionaryService;
         _guessService = guessService;
         _hintService = hintService;
+        _guidProvider = guidProvider;
     }
 
-    public async Task<IReadOnlyList<Hunch>> GetHunchesAsync(Guid puzzleId)
+    public async Task<Hunch> GetHunchAsync(Guid puzzleId)
     {
         using var db = await _dbContextFactory.CreateDbContextAsync();
 
-        return await db.Hunches
+        Hunch? hunch = await db.Hunches
+             .AsNoTracking()
+             .FirstOrDefaultAsync(h => h.PuzzleId == puzzleId);
+
+        if (hunch is null)
+        {
+            throw new HunchDoesNotExistException(puzzleId);
+        }
+
+        return hunch;
+    }
+
+    public async Task<IReadOnlyList<HunchCharacter>> GetHunchesAsync(Guid puzzleId)
+    {
+        using var db = await _dbContextFactory.CreateDbContextAsync();
+
+        return await db.HunchCharacters
              .AsNoTracking()
              .Where(c => c.PuzzleId == puzzleId)
              .ToListAsync();
@@ -50,7 +73,7 @@ public class HunchService : IHunchService
     public async Task AppendCharacterToHunchAsync(Guid puzzleId, char character)
     {
         char invariantCharacter = char.ToUpperInvariant(character);
-        if (!Answer.VALIDATION_CHARACTERS_SUPPORTED.Contains(character))
+        if (!AnswerCharacter.VALIDATION_CHARACTERS_SUPPORTED.Contains(character))
         {
             throw new HunchCharacterNotSupportedException(invariantCharacter);
         }
@@ -66,7 +89,7 @@ public class HunchService : IHunchService
             throw new PuzzleDoesNotExistException(puzzleId);
         }
 
-        int currentLength = await db.Hunches
+        int currentLength = await db.HunchCharacters
              .AsNoTracking()
              .CountAsync(h => h.PuzzleId == puzzleId);
 
@@ -75,7 +98,7 @@ public class HunchService : IHunchService
             return;
         }
 
-        var hunch = new Hunch
+        var hunch = new HunchCharacter
         {
             PuzzleId = puzzle.Id,
             Column = currentLength,
@@ -85,7 +108,7 @@ public class HunchService : IHunchService
 
         await _hintService.CalculateHintAsync(hunch);
 
-        await db.Hunches.AddAsync(hunch);
+        await db.HunchCharacters.AddAsync(hunch);
 
         await db.SaveChangesAsync();
     }
@@ -94,7 +117,7 @@ public class HunchService : IHunchService
     {
         using var db = await _dbContextFactory.CreateDbContextAsync();
 
-        Hunch? lastHunch = await db.Hunches
+        HunchCharacter? lastHunch = await db.HunchCharacters
             .AsNoTracking()
             .Where(h => h.PuzzleId == puzzleId)
             .OrderByDescending(h => h.Column)
@@ -105,7 +128,7 @@ public class HunchService : IHunchService
             return;
         }
 
-        db.Hunches.Remove(lastHunch);
+        db.HunchCharacters.Remove(lastHunch);
 
         await db.SaveChangesAsync();
     }
@@ -123,7 +146,16 @@ public class HunchService : IHunchService
             throw new PuzzleDoesNotExistException(puzzleId);
         }
 
-        List<Hunch> hunches = await db.Hunches
+        Hunch? hunch = await db.Hunches
+            .AsNoTracking()
+            .FirstOrDefaultAsync(h => h.PuzzleId == puzzle.Id);
+
+        if (hunch is null)
+        {
+            throw new HunchDoesNotExistException(puzzle.Id);
+        }
+
+        List<HunchCharacter> hunches = await db.HunchCharacters
             .AsNoTracking()
             .Where(h => h.PuzzleId == puzzleId)
             .OrderBy(h => h.Column)
@@ -134,25 +166,24 @@ public class HunchService : IHunchService
             throw new IncompleteGuessException(hunches.Count, puzzle.Width);
         }
 
-        int? lastRow = await db.Guesses
+        int? lastRow = await db.GuessCharacters
             .AsNoTracking()
             .MaxAsync(g => (int?)g.Row);
 
-        bool isAnswer = true;
-        string? invariantText = puzzle.IsSpellChecking ? string.Empty : null;
+        int row = (lastRow ?? -1) + 1;
 
-        var guesses = new List<Guess>();
-        foreach (Hunch h in hunches)
+        Guid guessId = _guidProvider.NewGuid();
+        string guessInvariantText = string.Empty;
+        bool isHuh = true;
+
+        var guesses = new List<GuessCharacter>();
+        foreach (HunchCharacter h in hunches)
         {
-            if (isAnswer)
-            {
-                isAnswer = await db.Answers.AnyAsync(a => a.Column == h.Column && a.InvariantCharacter == h.InvariantCharacter);
-            }
-
-            var guess = new Guess
+            var guess = new GuessCharacter
             {
                 PuzzleId = puzzle.Id,
-                Row = (lastRow ?? -1) + 1,
+                GuessId = guessId,
+                Row = row,
                 Column = h.Column,
                 InvariantCharacter = h.InvariantCharacter,
                 Hint = Hints.None,
@@ -162,42 +193,79 @@ public class HunchService : IHunchService
 
             guesses.Add(guess);
 
-            if (invariantText is not null)
+            guessInvariantText += h.InvariantCharacter;
+
+            if (guess.Hint is not Hints.Correct)
             {
-                invariantText += h.InvariantCharacter;
+                isHuh = false;
             }
         }
 
-        if (!isAnswer && invariantText is not null)
+        if (puzzle.IsSpellChecking)
         {
-            bool isSpelledCorrectly = await _dictionaryService.IsSpelledCorrectlyAsync(puzzleId, invariantText);
+            bool isSpelledCorrectly = await _dictionaryService.IsSpelledCorrectlyAsync(puzzleId, guessInvariantText);
             if (!isSpelledCorrectly)
             {
-                throw new IncorrectSpellingException(invariantText);
+                throw new IncorrectSpellingException(guessInvariantText);
             }
         }
 
         IReadOnlyList<string> guessInvariantTexts = await _guessService.GetGuessInvariantTextsAsync(puzzleId);
 
-        if (guessInvariantTexts.Contains(invariantText))
+        if (guessInvariantTexts.Contains(guessInvariantText))
         {
-            throw new DuplicateGuessException(invariantText);
+            throw new DuplicateGuessException(guessInvariantText);
         }
 
         await _hintService.PostCalculateHintsAsync(guesses);
 
         puzzle.CurrentGuesses++;
 
-        if (isAnswer)
+        bool isAnswer = false;
+
+        Answer? answer = await db.Answers
+            .AsNoTracking()
+            .FirstOrDefaultAsync(a => a.PuzzleId == puzzleId && a.InvariantText == guessInvariantText);
+
+        if (answer is not null)
         {
             puzzle.CurrentAnswers++;
+            answer.IsSolved = true;
+
+            db.Answers.Update(answer);
+
+            isAnswer = true;
+            isHuh = false;
         }
 
-        puzzle.IsComplete = puzzle.TotalAnswers - puzzle.CurrentAnswers is <= 0 || puzzle.CurrentGuesses >= puzzle.MaxGuesses;
+        bool defeat = puzzle.MaxGuesses is not null && puzzle.CurrentGuesses >= puzzle.MaxGuesses;
+        bool victory = puzzle.TotalAnswers - puzzle.CurrentAnswers is <= 0;
+
+        bool isBonus = hunch.IsBonus;
+        if (isAnswer && defeat)
+        {
+            defeat = false;
+            hunch.IsBonus = true;
+
+            db.Hunches.Update(hunch);
+        }
+
+        puzzle.IsFinished = victory || defeat;
 
         db.Puzzles.Update(puzzle);
 
-        await db.Guesses.AddRangeAsync(guesses);
+        await db.Guesses.AddAsync(new Guess
+        {
+            Id = guessId,
+            PuzzleId = puzzleId,
+            Row = row,
+            InvariantText = guessInvariantText,
+            IsAnswer = isAnswer,
+            IsBonus = isBonus,
+            IsHuh = isHuh,
+        });
+
+        await db.GuessCharacters.AddRangeAsync(guesses);
 
         db.RemoveRange(hunches);
 

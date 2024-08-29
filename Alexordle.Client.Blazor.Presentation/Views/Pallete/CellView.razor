@@ -12,19 +12,19 @@
     {
         if (ViewModel.Hint is Hints.Correct)
         {
-            return ViewModel.IsHunch ? "hint-hunch-correct" : "hint-correct";
+            return ViewModel.IsHunch ? "hint-hunch-correct" : "hint-cell-correct";
         }
 
         if (ViewModel.Hint is Hints.Elsewhere)
         {
-            return ViewModel.IsHunch ? "hint-hunch-elsewhere" : "hint-elsewhere";
+            return ViewModel.IsHunch ? "hint-hunch-elsewhere" : "hint-cell-elsewhere";
         }
 
-        if (ViewModel.Hint is Hints.Wrong)
+        if (ViewModel.Hint is Hints.Incorrect)
         {
-            return ViewModel.IsHunch ? "hint-hunch-wrong" : "hint-incorrect";
+            return ViewModel.IsHunch ? "hint-hunch-wrong" : "hint-cell-incorrect";
         }
 
-        return ViewModel.IsHunch ? "hint-hunch-unknown" : "hint-incorrect";
+        return ViewModel.IsHunch ? "hint-hunch-none" : "hint-cell-none";
     }
 }

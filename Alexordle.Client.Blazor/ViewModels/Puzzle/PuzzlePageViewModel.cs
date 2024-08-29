@@ -13,11 +13,11 @@ using MediatR;
 using Microsoft.Extensions.Logging;
 
 namespace Alexordle.Client.Blazor.ViewModels.Game;
-public partial class PuzzlePageViewModel : ObservableObject, INotificationHandler<PuzzleUpdateNotification>, INotificationHandler<KeySubmitNotification>, INotificationHandler<KeyEnterNotification>, INotificationHandler<KeyBackspaceNotification>
+public partial class PuzzlePageViewModel : ObservableObject, INotificationHandler<PuzzleSubmitNotification>, INotificationHandler<KeySubmitNotification>, INotificationHandler<KeyEnterNotification>, INotificationHandler<KeyBackspaceNotification>
 {
     private readonly ILogger<PuzzlePageViewModel> _logger;
     private readonly IMediator _mediator;
-    private readonly ISerializationService _transmissionService;
+    private readonly ISerializationService _serializationService;
     private readonly INavigationService _navigationService;
     private readonly IClipboardService _clipboardService;
     private readonly IShareService _shareService;
@@ -30,7 +30,7 @@ public partial class PuzzlePageViewModel : ObservableObject, INotificationHandle
     public PuzzlePageViewModel(
         ILogger<PuzzlePageViewModel> logger,
         IMediator mediator,
-        ISerializationService transmissionService,
+        ISerializationService serializationService,
         INavigationService navigationService,
         IClipboardService clipboardService,
         IShareService shareService,
@@ -45,7 +45,7 @@ public partial class PuzzlePageViewModel : ObservableObject, INotificationHandle
     {
         _logger = logger;
         _mediator = mediator;
-        _transmissionService = transmissionService;
+        _serializationService = serializationService;
         _navigationService = navigationService;
         _clipboardService = clipboardService;
         _shareService = shareService;
@@ -81,9 +81,15 @@ public partial class PuzzlePageViewModel : ObservableObject, INotificationHandle
     private string? _explanation;
 
     [ObservableProperty]
-    private bool _isComplete;
+    private bool _isFinished;
 
-    public async Task Handle(PuzzleUpdateNotification notification, CancellationToken cancellationToken)
+    [ObservableProperty]
+    private bool _isLoading;
+
+    [ObservableProperty]
+    private bool _isInfinite;
+
+    public async Task Handle(PuzzleSubmitNotification notification, CancellationToken cancellationToken)
     {
         await UpdateStateAsync();
     }
@@ -108,19 +114,28 @@ public partial class PuzzlePageViewModel : ObservableObject, INotificationHandle
     {
         if (isFirstRender)
         {
+            IsLoading = true;
+
             try
             {
                 SerializedPuzzle = QueryString;
 
-                PuzzleId = await LoadSerializedPuzzleAsync();
+                //the query string is automatically decoded by blazor but we want to keep it encoded.
+                if (SerializedPuzzle is not null)
+                {
+                    SerializedPuzzle = await _serializationService.EncodeSerializedPuzzleForUrlAsync(SerializedPuzzle);
+                }
+
+                Puzzle puzzle = await LoadSerializedPuzzleAsync();
+
+                PuzzleId = puzzle.Id;
+                IsInfinite = puzzle.MaxGuesses is null;
 
                 KeyboardViewModel.Create();
 
-                var publish = _mediator.Publish(new PuzzleUpdateNotification(PuzzleId.Value));
-                var generateExplanationTask = GenerateExplanationAsync();
-
-                await publish;
-                await generateExplanationTask;
+                await _mediator.Publish(new PuzzleUpdateNotification(PuzzleId.Value));
+                await _mediator.Publish(new PuzzleSubmitNotification(PuzzleId.Value));
+                await GenerateExplanationAsync();
             }
             catch (Exception e)
             {
@@ -128,6 +143,8 @@ public partial class PuzzlePageViewModel : ObservableObject, INotificationHandle
 
                 IsFaulted = true;
             }
+
+            IsLoading = false;
         }
     }
 
@@ -158,7 +175,7 @@ public partial class PuzzlePageViewModel : ObservableObject, INotificationHandle
         {
             Puzzle puzzle = await _puzzleService.GetPuzzleAsync(pi);
 
-            IsComplete = puzzle.IsComplete;
+            IsFinished = puzzle.IsFinished;
         });
     }
 
@@ -173,6 +190,8 @@ public partial class PuzzlePageViewModel : ObservableObject, INotificationHandle
                 await _persistenceService.SaveAsync(pi);
 
                 await _mediator.Publish(new PuzzleUpdateNotification(pi));
+
+                await _mediator.Publish(new PuzzleSubmitNotification(pi));
             }
             catch (IncompleteGuessException)
             {
@@ -282,7 +301,9 @@ public partial class PuzzlePageViewModel : ObservableObject, INotificationHandle
 
                     //after a while the sqlite database loses all of its memory in the browser
                     //so we can load the puzzle again from local storage if it exists
-                    puzzleId = await LoadSerializedPuzzleAsync();
+                    Puzzle puzzle = await LoadSerializedPuzzleAsync();
+
+                    puzzleId = puzzle.Id;
 
                     PuzzleId = puzzleId;
                 }
@@ -296,27 +317,20 @@ public partial class PuzzlePageViewModel : ObservableObject, INotificationHandle
         }
     }
 
-    private async Task<Guid> LoadSerializedPuzzleAsync()
+    private async Task<Puzzle> LoadSerializedPuzzleAsync()
     {
         if (SerializedPuzzle is null)
         {
             throw new SerializedPuzzleIsNullException();
         }
 
-        Guid? puzzleId = await _persistenceService.LoadAsync(SerializedPuzzle);
-        if (puzzleId is null)
+        Puzzle? storedPuzzle = await _persistenceService.LoadAsync(SerializedPuzzle);
+        if (storedPuzzle is null)
         {
-            Puzzle puzzle = await _transmissionService.DeserializeAndStartPuzzleAsync(SerializedPuzzle);
-
-            puzzleId = puzzle.Id;
+            return await _serializationService.DeserializeAndStartPuzzleAsync(SerializedPuzzle);
         }
 
-        if (puzzleId is not null)
-        {
-            return puzzleId.Value;
-        }
-
-        throw new PuzzleDeserializationException(SerializedPuzzle);
+        return storedPuzzle;
     }
 
     //private readonly ILogger<GamePageViewModel> _logger;

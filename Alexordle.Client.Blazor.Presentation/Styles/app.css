@@ -191,15 +191,19 @@ body {
     @apply uppercase justify-center font-extrabold font-mono text-2xl md:text-2xl;
 }
 
-.hint-correct {
+.hint-cell-correct {
     @apply bg-emerald-700 border-emerald-800 text-white;
 }
 
-.hint-elsewhere {
+.hint-cell-elsewhere {
     @apply bg-yellow-400 border-yellow-500 text-white;
 }
 
-.hint-incorrect {
+.hint-cell-incorrect {
+    @apply bg-gray-500 border-gray-600 text-white;
+}
+
+.hint-cell-none {
     @apply bg-none border-gray-400 text-black;
 }
 
@@ -215,8 +219,24 @@ body {
     @apply bg-none border-gray-400 text-black border-dashed;
 }
 
-.hint-hunch-unknown {
+.hint-hunch-none {
     @apply bg-none border-gray-400 text-black;
+}
+
+.hint-key-correct {
+    @apply bg-emerald-700 border-emerald-800 text-white;
+}
+
+.hint-key-elsewhere {
+    @apply bg-yellow-400 border-yellow-500 text-white;
+}
+
+.hint-key-incorrect {
+    @apply bg-gray-500 border-gray-600 text-white;
+}
+
+.hint-key-none {
+    @apply bg-slate-300 border-gray-400 text-black;
 }
 
 /*

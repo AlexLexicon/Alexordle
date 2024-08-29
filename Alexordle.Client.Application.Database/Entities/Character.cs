@@ -1,7 +1,7 @@
 ﻿using Alexordle.Client.Application.Database.Models;
 
 namespace Alexordle.Client.Application.Database.Entities;
-public abstract class Cell
+public abstract class Character
 {
     public required Guid PuzzleId { get; init; }
     public required int Column { get; init; }

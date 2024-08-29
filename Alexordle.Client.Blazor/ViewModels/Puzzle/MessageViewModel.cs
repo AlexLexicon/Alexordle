@@ -50,7 +50,7 @@ public partial class MessageViewModel : ObservableObject, INotificationHandler<S
 
         int remainingAnswers = puzzle.TotalAnswers - puzzle.CurrentAnswers;
 
-        if (puzzle.IsComplete)
+        if (puzzle.IsFinished)
         {
             if (remainingAnswers is <= 0)
             {
