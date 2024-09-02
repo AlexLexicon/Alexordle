@@ -228,27 +228,4 @@ public class HintService : IHintService
             .AsNoTracking()
             .AnyAsync(g => g.InvariantCharacter == invariantCharacter);
     }
-
-    //private async Task<Hints> CalculateGuessHintAsync(AlexordleDbContext db, Guid puzzleId, char invariantCharacter, int column)
-    //{
-    //    bool isCorrect = await db.Answers
-    //        .AsNoTracking()
-    //        .AnyAsync(a => a.PuzzleId == puzzleId && a.Column == column && a.InvariantCharacter == invariantCharacter);
-
-    //    if (isCorrect)
-    //    {
-    //        return Hints.Correct;
-    //    }
-
-    //    bool isElsewhere = await db.Answers
-    //        .AsNoTracking()
-    //        .AnyAsync(a => a.InvariantCharacter == invariantCharacter);
-
-    //    if (isElsewhere)
-    //    {
-    //        return Hints.Elsewhere;
-    //    }
-
-    //    return Hints.None;
-    //}
 }
