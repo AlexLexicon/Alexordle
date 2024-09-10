@@ -6,7 +6,7 @@ public class AnswerCharacter : IEntityTypeConfiguration<AnswerCharacter>
 {
     public const int VALIDATION_COUNT_MINIMUM = 1;
     public const int VALIDATION_COUNT_MAXIMUM = Puzzle.VALIDATION_MAXGUESSES_MAXIMUM;
-    public const string VALIDATION_CHARACTERS_SUPPORTED = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    public const string VALIDATION_CHARACTERS_SUPPORTED = " ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
     public required Guid PuzzleId { get; init; }
     public required Guid AnswerId { get; init; }

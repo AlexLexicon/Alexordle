@@ -133,7 +133,7 @@ public partial class PuzzlePageViewModel : ObservableObject, INotificationHandle
 
                 KeyboardViewModel.Create();
 
-                await _mediator.Publish(new PuzzleUpdateNotification(PuzzleId.Value));
+                await _mediator.Publish(new PalleteUpdateNotification(PuzzleId.Value));
                 await _mediator.Publish(new PuzzleSubmitNotification(PuzzleId.Value));
                 await GenerateExplanationAsync();
             }
@@ -189,7 +189,7 @@ public partial class PuzzlePageViewModel : ObservableObject, INotificationHandle
 
                 await _persistenceService.SaveAsync(pi);
 
-                await _mediator.Publish(new PuzzleUpdateNotification(pi));
+                await _mediator.Publish(new PalleteUpdateNotification(pi));
 
                 await _mediator.Publish(new PuzzleSubmitNotification(pi));
             }
@@ -214,7 +214,7 @@ public partial class PuzzlePageViewModel : ObservableObject, INotificationHandle
         {
             await _hunchService.RemoveCharacterFromHunchAsync(pi);
 
-            await _mediator.Publish(new PuzzleUpdateNotification(pi));
+            await _mediator.Publish(new PalleteUpdateNotification(pi));
         });
     }
 
@@ -226,7 +226,7 @@ public partial class PuzzlePageViewModel : ObservableObject, INotificationHandle
 
             await _persistenceService.SaveAsync(pi);
 
-            await _mediator.Publish(new PuzzleUpdateNotification(pi));
+            await _mediator.Publish(new PalleteUpdateNotification(pi));
         });
     }
 

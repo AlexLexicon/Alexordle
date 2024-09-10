@@ -1,4 +1,5 @@
-﻿using FluentValidation;
+﻿using Alexordle.Client.Application.Database.Entities;
+using FluentValidation;
 using Lexicom.Validation;
 using Lexicom.Validation.Amenities.Extensions;
 
@@ -12,7 +13,7 @@ public class WidthRuleSet : AbstractRuleSet<string?>
             .NotSimplyEmpty()
             .NotAnyWhiteSpace()
             .Digits()
-            .GreaterThan(0)
-            .LessThanOrEqualTo(10);
+            .GreaterThanOrEqualTo(Puzzle.VALIDATION_WIDTH_MINIMUM)
+            .LessThanOrEqualTo(Puzzle.VALIDATION_WIDTH_MAXIMUM);
     }
 }

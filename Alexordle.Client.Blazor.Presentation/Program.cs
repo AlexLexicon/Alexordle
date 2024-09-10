@@ -80,6 +80,6 @@ builder.Services.AddBlazoredLocalStorageAsSingleton();
 
 var app = builder.Build();
 
-app.UsePeriodicNotificator(TimeSpan.FromSeconds(0.10));
+app.UsePeriodicNotificator(TimeSpan.FromSeconds(0.5));
 
 await app.RunAsync();

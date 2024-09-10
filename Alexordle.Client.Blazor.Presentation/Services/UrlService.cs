@@ -20,6 +20,6 @@ public class UrlService : IUrlService
     {
         string url = await _navigationService.GetBaseUrlAsync();
 
-        return $"{url}game?puzzle={code}";
+        return $"{url}game?p={code}";
     }
 }

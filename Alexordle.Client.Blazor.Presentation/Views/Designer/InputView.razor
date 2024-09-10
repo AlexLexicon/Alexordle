@@ -1,0 +1,8 @@
+﻿@inherits ParameterLayout<InputViewModel>
+
+<div>
+    <div class="designer-textinput-section">
+        @ViewModel.Label
+    </div>
+    <TextInput @bind-Text="@ViewModel.Text" @bind-Text:after="@ViewModel.TextChangedCommand.BindAfter()" Validator="@ViewModel.TextValidator" />
+</div>

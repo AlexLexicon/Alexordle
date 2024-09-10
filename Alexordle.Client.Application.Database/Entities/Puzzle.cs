@@ -7,7 +7,7 @@ public class Puzzle : IEntityTypeConfiguration<Puzzle>
     public const int VALIDATION_WIDTH_MINIMUM = 1;
     public const int VALIDATION_WIDTH_MAXIMUM = 10;
     public const int VALIDATION_MAXGUESSES_MINIMUM = 1;
-    public const int VALIDATION_MAXGUESSES_MAXIMUM = 14;
+    public const int VALIDATION_MAXGUESSES_MAXIMUM = 12;
 
     public required Guid Id { get; init; }
     public required int Width { get; init; }

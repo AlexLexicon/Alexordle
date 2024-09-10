@@ -141,6 +141,11 @@ public class HintService : IHintService
 
     private async Task<Hints> CalculateHintAsync(Guid puzzleId, int column, char invariantCharacter, bool isHunch)
     {
+        if (invariantCharacter is ' ')
+        {
+            return Hints.None;
+        }
+
         using var db = await _dbContextFactory.CreateDbContextAsync();
 
         bool isCorrect = await db.AnswerCharacters

@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 namespace Alexordle.Client.Application.Database.Entities;
 public class ClueCharacter : Character, IEntityTypeConfiguration<ClueCharacter>
 {
-    public const string VALIDATION_CHARACTERS_SUPPORTED = "ABCDEFGHIJKLMNOPQRSTUVWXYZ`1234567890-=~!@#$%^&*()_+[]\\{}|':\"./<>?";//BLACKLIST , ;
+    public const string VALIDATION_CHARACTERS_SUPPORTED = " ABCDEFGHIJKLMNOPQRSTUVWXYZ`1234567890-=~!@#$%^&*()_+[]\\{}|':\"./<>?";//BLACKLIST , ;
 
     public required Guid ClueId { get; init; }
     public required int Row { get; init; }

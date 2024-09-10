@@ -1,357 +1,263 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+﻿using Alexordle.Client.Application.Database.Entities;
+using Alexordle.Client.Application.Services;
+using Alexordle.Client.Blazor.Factories;
+using Alexordle.Client.Blazor.Notifications;
+using Alexordle.Client.Blazor.Validations;
+using Alexordle.Client.Blazor.Validations.RuleSets;
+using Alexordle.Client.Blazor.ViewModels.Pallete;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using Lexicom.Concentrate.Blazor.WebAssembly.Amenities.Notifications;
+using Lexicom.Concentrate.Blazor.WebAssembly.Amenities.Services;
+using MediatR;
+using Microsoft.Extensions.Logging;
+using System.Collections.ObjectModel;
 
 namespace Alexordle.Client.Blazor.ViewModels.Designer;
-public partial class DesignerPageViewModel : ObservableObject//, INotificationHandler<RefreshDesignerNotification>, INotificationHandler<RemoveClueInputNotification>, INotificationHandler<RemoveAnswerInputNotification>, INotificationHandler<PeriodicTickNotification>
+public partial class DesignerPageViewModel : ObservableObject, INotificationHandler<RemoveListInputViewModelNotification>, INotificationHandler<DesignChangedNotification>, INotificationHandler<PeriodicTickNotification>
 {
-    //private readonly IMediator _mediator;
-    //private readonly IViewModelFactory _viewModelFactory;
-    //private readonly IPuzzleService _puzzleService;
-    //private readonly IClipboardService _clipboardService;
-    //private readonly IGameService _gameService;
-    //private readonly IUrlService _urlService;
-    //private readonly INavigationService _navigationService;
-    //private readonly ITimeProvider _timeProvider;
-    //private readonly DesignerAnswersCountValidation _designerAnswersCountValidation;
-    //private readonly DesignerWidthValidation _designerWidthValidation;
-
-    //public DesignerPageViewModel(
-    //    IMediator mediator,
-    //    IViewModelFactory viewModelFactory,
-    //    IPuzzleService puzzleService,
-    //    IClipboardService clipboardService,
-    //    IGameService gameService,
-    //    IUrlService urlService,
-    //    INavigationService navigationService,
-    //    ITimeProvider timeProvider,
-    //    DesignerAnswersCountValidation designerAnswersCountValidation,
-    //    DesignerWidthValidation designerWidthValidation,
-    //    PalleteViewModel palleteViewModel,
-    //    IRuleSetValidator<WidthRuleSet, string?> widthTextRuleSetValidator,
-    //    IRuleSetValidator<MaximumGuessesRuleSet, string?> maximumGuessesTextRuleSetValidator)
-    //{
-    //    _mediator = mediator;
-    //    _viewModelFactory = viewModelFactory;
-    //    _puzzleService = puzzleService;
-    //    _clipboardService = clipboardService;
-    //    _gameService = gameService;
-    //    _urlService = urlService;
-    //    _navigationService = navigationService;
-    //    _designerAnswersCountValidation = designerAnswersCountValidation;
-    //    _designerWidthValidation = designerWidthValidation;
-    //    _timeProvider = timeProvider;
-
-    //    PalleteViewModel = palleteViewModel;
-    //    WidthTextRuleSetValidator = widthTextRuleSetValidator;
-    //    MaximumGuessesTextRuleSetValidator = maximumGuessesTextRuleSetValidator;
-
-    //    ClueInputViewModels = [];
-    //    AnswerInputViewModels = [];
-    //    DesignerState = new State
-    //    {
-    //        TotalAnswers = 0,
-    //        TotalGuesses = 0,
-    //        MaximumGuesses = 0,
-    //        RemainingAnswers = 0,
-    //        RemainingGuesses = 0,
-    //        IsBonus = false,
-    //        IsDefeat = false,
-    //        IsVictory = false,
-    //        CorrectGuessIds = new HashSet<Guid>(),
-    //    };
-    //}
-
-    //private Guid PuzzleId { get; set; }
-    //private string? GameUrl { get; set; }
-    //private State DesignerState { get; }
-    //private bool IsChanging { get; set; }
-    //private long CurrentChagedUtcTick { get; set; }
-    //private long LastChangedUtcTick { get; set; }
-
-
-    //[ObservableProperty]
-    //private bool _isSpellChecking;
-
-    //[ObservableProperty]
-    //private bool _isSpellCheckingValid;
-
-    //[ObservableProperty]
-    //private string? _widthText;
-
-    //[ObservableProperty]
-    //private IRuleSetValidator<WidthRuleSet, string?> _widthTextRuleSetValidator;
-
-    //[ObservableProperty]
-    //private string? _maximumGuessesText;
-
-    //[ObservableProperty]
-    //private IRuleSetValidator<MaximumGuessesRuleSet, string?> _maximumGuessesTextRuleSetValidator;
-
-    //[ObservableProperty]
-    //private ObservableCollection<ClueInputViewModel> _clueInputViewModels;
-
-    //[ObservableProperty]
-    //private ObservableCollection<AnswerInputViewModel> _answerInputViewModels;
-
-    //[ObservableProperty]
-    //private PalleteViewModel _palleteViewModel;
-
-    //[ObservableProperty]
-    //private bool _hasAnswers;
-
-    //[ObservableProperty]
-    //private bool _isPlayable;
-
-    //public async Task RedirectAsync(string puzzleCode)
-    //{
-    //    string url = await _urlService.CreatePuzzleUrlAsync(puzzleCode);
-
-    //    await _navigationService.NavigateToUrlAsync(url);
-    //}
-
-    //public async Task Handle(RefreshDesignerNotification notification, CancellationToken cancellationToken)
-    //{
-    //    await RefreshDesignerAsync();
-    //}
-
-    //public async Task Handle(RemoveClueInputNotification notification, CancellationToken cancellationToken)
-    //{
-    //    ClueInputViewModels.Remove(notification.ClueInputViewModel);
-
-    //    await RefreshDesignerAsync();
-    //}
-
-    //public async Task Handle(RemoveAnswerInputNotification notification, CancellationToken cancellationToken)
-    //{
-    //    AnswerInputViewModels.Remove(notification.AnswerInputViewModel);
-
-    //    SetHasAnswers();
-
-    //    await RefreshDesignerAsync();
-    //}
-
-    //public async Task Handle(PeriodicTickNotification notification, CancellationToken cancellationToken)
-    //{
-    //    if (!IsChanging && CurrentChagedUtcTick > LastChangedUtcTick)
-    //    {
-    //        IsChanging = true;
-
-    //        await UpdateWidthAsync();
-    //        await UpdateMaximumGuessesAsync();
-
-    //        await RefreshDesignerAsync();
-
-    //        LastChangedUtcTick = notification.UtcNow.Ticks;
-
-    //        IsChanging = false;
-    //    }
-    //}
-
-    //[RelayCommand]
-    //private Task WidthTextChangedAsync()
-    //{
-    //    CurrentChagedUtcTick = _timeProvider.GetUtcNow().UtcTicks;
-
-    //    return Task.CompletedTask;
-    //}
-
-    //[RelayCommand]
-    //private Task MaximumGuessesTextChangedAsync()
-    //{
-    //    CurrentChagedUtcTick = _timeProvider.GetUtcNow().UtcTicks;
-
-    //    return Task.CompletedTask;
-    //}
-
-    //[RelayCommand]
-    //private async Task IsSpellCheckingChangedAsync()
-    //{
-    //    await UpdateIsSpellCheckingAsync();
-
-    //    await RefreshDesignerAsync();
-    //}
-
-    //[RelayCommand]
-    //private async Task LoadedAsync()
-    //{
-    //    IsPlayable = false;
-
-    //    await _puzzleService.DeleteAllPuzzlesAsync();
-
-    //    Puzzle puzzle = await _puzzleService.CreatePuzzleAsync();
-
-    //    PuzzleId = puzzle.Id;
-
-    //    IsSpellChecking = true;
-    //    WidthText = "5";
-    //    MaximumGuessesText = "8";
-
-    //    await ValidateAsync();
-
-    //    //default xordle setup
-    //    await UpdateIsSpellCheckingAsync();
-    //    await UpdateWidthAsync();
-    //    await UpdateMaximumGuessesAsync();
-    //    await CreateClueInputAsync("words");
-    //    await CreateAnswerInputAsync("games");
-
-    //    await RefreshDesignerAsync();
-    //}
-
-    //[RelayCommand]
-    //private async Task AddClueInputAsync()
-    //{
-    //    await CreateClueInputAsync(string.Empty);
-
-    //    await RefreshDesignerAsync();
-    //}
-
-    //[RelayCommand]
-    //private async Task AddAnswerInputAsync()
-    //{
-    //    await CreateAnswerInputAsync(string.Empty);
-
-    //    await RefreshDesignerAsync();
-    //}
-
-    //[RelayCommand]
-    //private async Task CopyGameUrlAsync()
-    //{
-    //    if (IsPlayable && !string.IsNullOrWhiteSpace(GameUrl))
-    //    {
-    //        await _clipboardService.WriteAsync(GameUrl);
-    //    }
-    //}
-
-    //[RelayCommand]
-    //private async Task PlayGameAsync()
-    //{
-    //    if (IsPlayable && !string.IsNullOrWhiteSpace(GameUrl))
-    //    {
-    //        await _navigationService.NavigateToUrlAsync(GameUrl);
-    //    }
-    //}
-
-    //private async Task CreateClueInputAsync(string initalClueText)
-    //{
-    //    var clueInputViewModel = _viewModelFactory.Create<ClueInputViewModel, Guid>(PuzzleId);
-
-    //    ClueInputViewModels.Add(clueInputViewModel);
-
-    //    await clueInputViewModel.CreateAsync(initalClueText);
-    //}
-
-    //private async Task CreateAnswerInputAsync(string initalAnswerText)
-    //{
-    //    var answerInputViewModel = _viewModelFactory.Create<AnswerInputViewModel, Guid>(PuzzleId);
-
-    //    AnswerInputViewModels.Add(answerInputViewModel);
-
-    //    SetHasAnswers();
-
-    //    await answerInputViewModel.CreateAsync(initalAnswerText);
-    //}
-
-    //private async Task UpdateIsSpellCheckingAsync()
-    //{
-    //    await _puzzleService.SetIsSpellCheckingAsync(PuzzleId, IsSpellChecking);
-
-    //    await ValidateAsync();
-    //}
-
-    //private async Task UpdateWidthAsync()
-    //{
-    //    int width = GetWidth();
-
-    //    _designerWidthValidation.CurrentWidth = width;
-
-    //    await _puzzleService.SetWidthAsync(PuzzleId, width);
-
-    //    await _mediator.Publish(new WidthChangedNotification());
-
-    //    await ValidateAsync();
-    //}
-
-    //private async Task UpdateMaximumGuessesAsync()
-    //{
-    //    int maximumGuesses = GetMaximumGuesses();
-
-    //    _designerAnswersCountValidation.CurrentAnswersCount = AnswerInputViewModels.Count;
-
-    //    await _puzzleService.SetMaximumGuessesAsync(PuzzleId, maximumGuesses);
-
-    //    await ValidateAsync();
-    //}
-
-    //private async Task ValidateAsync()
-    //{
-    //    await WidthTextRuleSetValidator.ValidateAsync(WidthText);
-    //    await MaximumGuessesTextRuleSetValidator.ValidateAsync(MaximumGuessesText);
-    //    IsSpellCheckingValid = !IsSpellChecking || IsSpellChecking && GetWidth() is 5;
-    //}
-
-    //private async Task RefreshDesignerAsync()
-    //{
-    //    IsPlayable = GetIsPlayable();
-    //    if (IsPlayable)
-    //    {
-    //        string code = await _gameService.EncodePuzzleAsync(PuzzleId);
-
-    //        GameUrl = await _urlService.CreatePuzzleUrlAsync(code);
-    //    }
-
-    //    long tick = _timeProvider.GetUtcNow().Ticks;
-
-    //    await _mediator.Publish(new GeneratePalleteNotification(tick, PuzzleId, DesignerState, IsDesigner: true));
-    //}
-
-    //private bool GetIsPlayable()
-    //{
-    //    if (MaximumGuessesTextRuleSetValidator.IsValid && WidthTextRuleSetValidator.IsValid && IsSpellCheckingValid && HasAnswers)
-    //    {
-    //        foreach (ClueInputViewModel clueInputViewModel in ClueInputViewModels)
-    //        {
-    //            if (!clueInputViewModel.TextRuleSetValidator.IsValid)
-    //            {
-    //                return false;
-    //            }
-    //        }
-
-    //        foreach (AnswerInputViewModel answerInputViewModel in AnswerInputViewModels)
-    //        {
-    //            if (!answerInputViewModel.TextRuleSetValidator.IsValid)
-    //            {
-    //                return false;
-    //            }
-    //        }
-
-    //        return true;
-    //    }
-
-    //    return false;
-    //}
-
-    //private void SetHasAnswers()
-    //{
-    //    HasAnswers = AnswerInputViewModels.Count is > 0;
-    //}
-
-    //private int GetMaximumGuesses()
-    //{
-    //    if (MaximumGuessesTextRuleSetValidator.IsValid && int.TryParse(MaximumGuessesText, out int maximumGuesses))
-    //    {
-    //        return maximumGuesses;
-    //    }
-
-    //    return 0;
-    //}
-
-    //private int GetWidth()
-    //{
-    //    if (WidthTextRuleSetValidator.IsValid && int.TryParse(WidthText, out int width))
-    //    {
-    //        return width;
-    //    }
-
-    //    return 0;
-    //}
+    private readonly ILogger<DesignerPageViewModel> _logger;
+    private readonly IMediator _mediator;
+    private readonly IInputViewModelFactory _inputViewModelFactory;
+    private readonly INavigationService _navigationService;
+    private readonly IUrlService _urlService;
+    private readonly IPuzzleService _puzzleService;
+    private readonly IHunchService _hunchService;
+    private readonly DesignerWidthValidation _designerWidthValidation;
+    private readonly DesignerAnswersCountValidation _designerAnswersCountValidation;
+
+    public DesignerPageViewModel(
+        ILogger<DesignerPageViewModel> logger,
+        IMediator mediator,
+        IInputViewModelFactory inputViewModelFactory,
+        INavigationService navigationService,
+        IUrlService urlService,
+        IPuzzleService puzzleService,
+        PalleteViewModel palleteViewModel,
+        IHunchService hunchService,
+        DesignerWidthValidation designerWidthValidation,
+        DesignerAnswersCountValidation designerAnswersCountValidation)
+    {
+        _logger = logger;
+        _mediator = mediator;
+        _inputViewModelFactory = inputViewModelFactory;
+        _navigationService = navigationService;
+        _urlService = urlService;
+        _puzzleService = puzzleService;
+        _hunchService = hunchService;
+        _designerWidthValidation = designerWidthValidation;
+        _designerAnswersCountValidation = designerAnswersCountValidation;
+
+        PalleteViewModel = palleteViewModel;
+
+        AnswerInputViewModels = [];
+        ClueInputViewModels = [];
+    }
+
+    private bool IsChanged { get; set; }
+    private bool IsDelayed { get; set; }
+
+    [ObservableProperty]
+    private bool _isLoading;
+
+    [ObservableProperty]
+    private bool _isSpellChecking;
+
+    [ObservableProperty]
+    private bool _isSuccessfullyGenerated;
+
+    [ObservableProperty]
+    private PalleteViewModel _palleteViewModel;
+
+    [ObservableProperty]
+    private InputViewModel? _widthInputViewModel;
+
+    [ObservableProperty]
+    private InputViewModel? _maxGuessesInputViewModel;
+
+    [ObservableProperty]
+    private ObservableCollection<ListInputViewModel> _answerInputViewModels;
+
+    [ObservableProperty]
+    private ObservableCollection<ListInputViewModel> _clueInputViewModels;
+
+    public async Task RedirectAsync(string serializedPuzzle)
+    {
+        string puzzleUrl = await _urlService.CreatePuzzleUrlAsync(serializedPuzzle);
+
+        await _navigationService.NavigateToUrlAsync(puzzleUrl);
+    }
+
+    public Task Handle(RemoveListInputViewModelNotification notification, CancellationToken cancellationToken)
+    {
+        AnswerInputViewModels.Remove(notification.ListInputViewModel);
+        ClueInputViewModels.Remove(notification.ListInputViewModel);
+
+        return Task.CompletedTask;
+    }
+
+    public Task Handle(DesignChangedNotification notification, CancellationToken cancellationToken)
+    {
+        IsLoading = true;
+        IsChanged = true;
+
+        return Task.CompletedTask;
+    }
+
+    public async Task Handle(PeriodicTickNotification notification, CancellationToken cancellationToken)
+    {
+        if (IsDelayed && !IsChanged)
+        {
+            IsDelayed = false;
+
+            await GeneratePuzzleAsync();
+
+            IsLoading = false;
+        }
+
+        if (IsChanged)
+        {
+            IsDelayed = true;
+            IsChanged = false;
+        }
+    }
+
+    [RelayCommand]
+    private void Loaded()
+    {
+        WidthInputViewModel = _inputViewModelFactory.CreateInputViewModel<WidthRuleSet>("Width");
+        MaxGuessesInputViewModel = _inputViewModelFactory.CreateInputViewModel<MaxGuessesRuleSet>("Maximum Guesses");
+
+        WidthInputViewModel.Text = "5";
+        MaxGuessesInputViewModel.Text = "8";
+    }
+
+    [RelayCommand]
+    private void AddAnswer()
+    {
+        var answerListInputViewModel = _inputViewModelFactory.CreateListInputViewModel<AnswerRuleSet>();
+
+        AnswerInputViewModels.Add(answerListInputViewModel);
+    }
+
+    [RelayCommand]
+    private void AddClue()
+    {
+        var clueListInputViewModel = _inputViewModelFactory.CreateListInputViewModel<ClueRuleSet>();
+
+        ClueInputViewModels.Add(clueListInputViewModel);
+    }
+
+    [RelayCommand]
+    private void Share()
+    {
+
+    }
+
+    [RelayCommand]
+    private void Play()
+    {
+
+    }
+
+    [RelayCommand]
+    private async Task IsSpellCheckingChangedAsync()
+    {
+        await GeneratePuzzleAsync();
+    }
+
+    private async Task GeneratePuzzleAsync()
+    {
+        IsSuccessfullyGenerated = false;
+
+        try
+        {
+            await _puzzleService.DeletePuzzlesAsync();
+
+            if (!int.TryParse(WidthInputViewModel?.Text, out int width))
+            {
+                width = 0;
+            }
+
+            var answers = new List<string>();
+            foreach (ListInputViewModel answerInputViewModel in AnswerInputViewModels)
+            {
+                string? answer = answerInputViewModel.Text?.PadRight(width, ' ');
+                if (!string.IsNullOrWhiteSpace(answer))
+                {
+                    answers.Add(answer);
+                }
+            }
+
+            if (answers.Count is <= 0)
+            {
+                answers.Add(new string(' ', width));
+            }
+
+            if (!int.TryParse(MaxGuessesInputViewModel?.Text, out int maxGuesses))
+            {
+                maxGuesses = Math.Max(8 - answers.Count, 1);
+            }
+            maxGuesses = Math.Min(maxGuesses, Puzzle.VALIDATION_MAXGUESSES_MAXIMUM);
+
+            var clues = new List<string>();
+            foreach (ListInputViewModel clueInputViewModel in ClueInputViewModels)
+            {
+                if (clueInputViewModel.Text is not null)
+                {
+                    clues.Add(clueInputViewModel.Text.PadRight(width, ' '));
+                }
+            }
+
+            Puzzle puzzle = await _puzzleService.StartDesignAsync(width, maxGuesses, IsSpellChecking, clues, answers);
+
+            foreach (string answer in answers)
+            {
+                for (int index = 0; index < width; index++)
+                {
+                    char character = ' ';
+                    if (index < answer.Length)
+                    {
+                        char answerCharacter = char.ToUpperInvariant(answer[index]);
+
+                        if (AnswerCharacter.VALIDATION_CHARACTERS_SUPPORTED.Contains(answerCharacter))
+                        {
+                            character = answerCharacter;
+                        }
+                    }
+
+                    await _hunchService.AppendCharacterToHunchAsync(puzzle.Id, character);
+                }
+
+                await _hunchService.SubmitDesignHunchAsync(puzzle.Id);
+            }
+
+            _designerWidthValidation.CurrentWidth = width;
+            _designerAnswersCountValidation.CurrentAnswersCount = AnswerInputViewModels.Count;
+            if (WidthInputViewModel is not null)
+            {
+                await WidthInputViewModel.UpdateValidatorAsync();
+            }
+            if (MaxGuessesInputViewModel is not null)
+            {
+                await MaxGuessesInputViewModel.UpdateValidatorAsync();
+            }
+            foreach (ListInputViewModel answerInputViewModel in AnswerInputViewModels)
+            {
+                await answerInputViewModel.UpdateValidatorAsync();
+            }
+            foreach (ListInputViewModel clueInputViewModel in ClueInputViewModels)
+            {
+                await clueInputViewModel.UpdateValidatorAsync();
+            }
+
+            await _mediator.Publish(new PalleteUpdateNotification(puzzle.Id));
+
+            IsSuccessfullyGenerated = true;
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Failed to generate the puzzle.");
+        }
+    }
 }

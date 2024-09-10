@@ -18,6 +18,11 @@ public interface IHunchService
     /// <exception cref="PuzzleDoesNotExistException"></exception>
     /// <exception cref="IncompleteGuessException"></exception>
     /// <exception cref="IncorrectSpellingException"></exception>
+    /// <exception cref="HunchDoesNotExistException"></exception>
+    Task SubmitDesignHunchAsync(Guid puzzleId);
+    /// <exception cref="PuzzleDoesNotExistException"></exception>
+    /// <exception cref="IncompleteGuessException"></exception>
+    /// <exception cref="IncorrectSpellingException"></exception>
     /// <exception cref="DuplicateGuessException"></exception>
     /// <exception cref="HunchDoesNotExistException"></exception>
     Task SubmitHunchAsync(Guid puzzleId);
@@ -73,7 +78,7 @@ public class HunchService : IHunchService
     public async Task AppendCharacterToHunchAsync(Guid puzzleId, char character)
     {
         char invariantCharacter = char.ToUpperInvariant(character);
-        if (!AnswerCharacter.VALIDATION_CHARACTERS_SUPPORTED.Contains(character))
+        if (!AnswerCharacter.VALIDATION_CHARACTERS_SUPPORTED.Contains(invariantCharacter))
         {
             throw new HunchCharacterNotSupportedException(invariantCharacter);
         }
@@ -133,7 +138,17 @@ public class HunchService : IHunchService
         await db.SaveChangesAsync();
     }
 
+    public async Task SubmitDesignHunchAsync(Guid puzzleId)
+    {
+        await SubmitHunchAsync(isDesign: true, puzzleId);
+    }
+
     public async Task SubmitHunchAsync(Guid puzzleId)
+    {
+        await SubmitHunchAsync(isDesign: false, puzzleId);
+    }
+
+    private async Task SubmitHunchAsync(bool isDesign, Guid puzzleId)
     {
         using var db = await _dbContextFactory.CreateDbContextAsync();
 
@@ -212,7 +227,7 @@ public class HunchService : IHunchService
 
         IReadOnlyList<string> guessInvariantTexts = await _guessService.GetGuessInvariantTextsAsync(puzzleId);
 
-        if (guessInvariantTexts.Contains(guessInvariantText))
+        if (!isDesign && guessInvariantTexts.Contains(guessInvariantText))
         {
             throw new DuplicateGuessException(guessInvariantText);
         }

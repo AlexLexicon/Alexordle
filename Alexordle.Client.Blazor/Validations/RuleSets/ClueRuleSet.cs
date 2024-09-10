@@ -3,11 +3,11 @@ using Lexicom.Validation;
 using Lexicom.Validation.Amenities.Extensions;
 
 namespace Alexordle.Client.Blazor.Validations.RuleSets;
-public class AnswerInputRuleSet : AbstractRuleSet<string?>
+public class ClueRuleSet : AbstractRuleSet<string?>
 {
     private readonly DesignerWidthValidation _designerWidthValidation;
 
-    public AnswerInputRuleSet(DesignerWidthValidation designerWidthValidation)
+    public ClueRuleSet(DesignerWidthValidation designerWidthValidation)
     {
         _designerWidthValidation = designerWidthValidation;
     }
@@ -18,7 +18,6 @@ public class AnswerInputRuleSet : AbstractRuleSet<string?>
             .NotNull()
             .NotSimplyEmpty()
             .NotAnyWhiteSpace()
-            .Letters()
             .Length(_ => _designerWidthValidation.CurrentWidth);
     }
 }

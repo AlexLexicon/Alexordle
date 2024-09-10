@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 using System.Collections.ObjectModel;
 
 namespace Alexordle.Client.Blazor.ViewModels.Pallete;
-public partial class PalleteViewModel : ObservableObject, INotificationHandler<PuzzleUpdateNotification>//, INotificationHandler<PeriodicTickNotification>
+public partial class PalleteViewModel : ObservableObject, INotificationHandler<PalleteUpdateNotification>
 {
     private readonly ILogger<PalleteViewModel> _logger;
     private readonly IMediator _mediator;
@@ -67,7 +67,7 @@ public partial class PalleteViewModel : ObservableObject, INotificationHandler<P
     [ObservableProperty]
     private bool _isFinished;
 
-    public async Task Handle(PuzzleUpdateNotification notification, CancellationToken cancellationToken)
+    public async Task Handle(PalleteUpdateNotification notification, CancellationToken cancellationToken)
     {
         await GenerateAsync(notification.PuzzleId);
     }
@@ -83,10 +83,11 @@ public partial class PalleteViewModel : ObservableObject, INotificationHandler<P
 
             int row;
             bool isComplete = false;
-            if (puzzleId != PuzzleId)
+            if (puzzleId != PuzzleId || Width != puzzle.Width)
             {
                 ClueRowViewModels.Clear();
                 GuessRowViewModels.Clear();
+                RemainingRowViewModels.Clear();
 
                 Width = puzzle.Width;
 

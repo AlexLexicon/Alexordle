@@ -16,11 +16,11 @@ public static class MvvmServiceBuilderExtensions
             .AssemblyScan<AssemblyScanMarker>()
             .For<ObservableObject>()
             //transient
-            .TryToRegister<AnswerInputViewModel>(vm =>
+            .TryToRegister<InputViewModel>(vm =>
             {
                 builder.AddViewModel(vm, ServiceLifetime.Transient);
             })
-            .ThenTryToRegister<ClueInputViewModel>(vm =>
+            .ThenTryToRegister<ListInputViewModel>(vm =>
             {
                 builder.AddViewModel(vm, ServiceLifetime.Transient);
             })

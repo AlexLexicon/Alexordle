@@ -4,6 +4,7 @@ using Alexordle.Client.Application.Database.Models;
 using Alexordle.Client.Application.Exceptions;
 using Lexicom.DependencyInjection.Primitives;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Alexordle.Client.Application.Services;
 public interface IPuzzleService
@@ -11,19 +12,24 @@ public interface IPuzzleService
     Task<bool> PuzzleExistsAsync(Guid puzzleId);
     /// <exception cref="PuzzleDoesNotExistException"></exception>
     Task<Puzzle> GetPuzzleAsync(Guid puzzleId);
+    Task<Puzzle> StartDesignAsync(int width, int? maxGuesses, bool isSpellChecking, IEnumerable<string> clues, IEnumerable<string> answers);
     Task<Puzzle> StartPuzzleAsync(int width, int? maxGuesses, bool isSpellChecking, IEnumerable<string> clues, IEnumerable<string> answers);
+    Task DeletePuzzlesAsync();
 }
 public class PuzzleService : IPuzzleService
 {
+    private readonly ILogger<PuzzleService> _logger;
     private readonly IDbContextFactory<AlexordleDbContext> _dbContextFactory;
     private readonly IGuidProvider _guidProvider;
     private readonly IHintService _hintService;
 
     public PuzzleService(
+        ILogger<PuzzleService> logger,
         IDbContextFactory<AlexordleDbContext> dbContextFactory,
         IGuidProvider guidProvider,
         IHintService hintService)
     {
+        _logger = logger;
         _dbContextFactory = dbContextFactory;
         _guidProvider = guidProvider;
         _hintService = hintService;
@@ -48,7 +54,180 @@ public class PuzzleService : IPuzzleService
         return puzzle;
     }
 
+    public async Task<Puzzle> StartDesignAsync(int width, int? maxGuesses, bool isSpellChecking, IEnumerable<string> clues, IEnumerable<string> answers)
+    {
+        return await StartPuzzleAsync(isDesign: true, width, maxGuesses, isSpellChecking, clues, answers);
+    }
+
     public async Task<Puzzle> StartPuzzleAsync(int width, int? maxGuesses, bool isSpellChecking, IEnumerable<string> clues, IEnumerable<string> answers)
+    {
+        return await StartPuzzleAsync(isDesign: false, width, maxGuesses, isSpellChecking, clues, answers);
+    }
+
+    public async Task DeletePuzzlesAsync()
+    {
+        using var db = await _dbContextFactory.CreateDbContextAsync();
+
+        List<Puzzle> puzzles = await db.Puzzles
+            .AsNoTracking()
+            .ToListAsync();
+
+        foreach (Puzzle puzzle in puzzles)
+        {
+            await DeletePuzzleAsync(db, puzzle.Id);
+        }
+    }
+
+    private async Task DeletePuzzleAsync(AlexordleDbContext db, Guid puzzleId)
+    {
+        try
+        {
+            List<AnswerCharacter> answerCharactersToRemove = await db.AnswerCharacters
+                .AsNoTracking()
+                .Where(ac => ac.PuzzleId == puzzleId)
+                .ToListAsync();
+            db.AnswerCharacters.RemoveRange(answerCharactersToRemove);
+
+            await db.SaveChangesAsync();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Failed to delete the answer characters for the puzzle with the id '{puzzleId}'", puzzleId);
+        }
+
+        try
+        {
+            List<Answer> answersToRemove = await db.Answers
+                .AsNoTracking()
+                .Where(a => a.PuzzleId == puzzleId)
+                .ToListAsync();
+            db.Answers.RemoveRange(answersToRemove);
+
+            await db.SaveChangesAsync();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Failed to delete the answers for the puzzle with the id '{puzzleId}'", puzzleId);
+        }
+
+        try
+        {
+            List<ClueCharacter> clueCharactersToRemove = await db.ClueCharacters
+                        .AsNoTracking()
+                        .Where(cc => cc.PuzzleId == puzzleId)
+                        .ToListAsync();
+            db.ClueCharacters.RemoveRange(clueCharactersToRemove);
+
+            await db.SaveChangesAsync();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Failed to delete the clue characters for the puzzle with the id '{puzzleId}'", puzzleId);
+        }
+
+        try
+        {
+            List<Clue> cluesToRemove = await db.Clues
+                .AsNoTracking()
+                .Where(cc => cc.PuzzleId == puzzleId)
+                .ToListAsync();
+            db.Clues.RemoveRange(cluesToRemove);
+
+            await db.SaveChangesAsync();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Failed to delete the clues for the puzzle with the id '{puzzleId}'", puzzleId);
+        }
+
+        try
+        {
+            List<GuessCharacter> guessCharactersToRemove = await db.GuessCharacters
+                .AsNoTracking()
+                .Where(gc => gc.PuzzleId == puzzleId)
+                .ToListAsync();
+            db.GuessCharacters.RemoveRange(guessCharactersToRemove);
+
+            await db.SaveChangesAsync();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Failed to delete the guess characters for the puzzle with the id '{puzzleId}'", puzzleId);
+        }
+
+        try
+        {
+            List<Guess> guessesToRemove = await db.Guesses
+                .AsNoTracking()
+                .Where(g => g.PuzzleId == puzzleId)
+                .ToListAsync();
+            db.Guesses.RemoveRange(guessesToRemove);
+
+            await db.SaveChangesAsync();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Failed to delete the guesses for the puzzle with the id '{puzzleId}'", puzzleId);
+        }
+
+        try
+        {
+            List<HunchCharacter> hunchCharactersToRemove = await db.HunchCharacters
+                .AsNoTracking()
+                .Where(hc => hc.PuzzleId == puzzleId)
+                .ToListAsync();
+            db.HunchCharacters.RemoveRange(hunchCharactersToRemove);
+
+            await db.SaveChangesAsync();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Failed to delete the hunch characters for the puzzle with the id '{puzzleId}'", puzzleId);
+        }
+        try
+        {
+            List<Hunch> hunchesToRemove = await db.Hunches
+                .AsNoTracking()
+                .Where(h => h.PuzzleId == puzzleId)
+                .ToListAsync();
+            db.Hunches.RemoveRange(hunchesToRemove);
+
+            await db.SaveChangesAsync();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Failed to delete the hunches for the puzzle with the id '{puzzleId}'", puzzleId);
+        }
+
+        try
+        {
+            Puzzle? puzzleToRemove = await db.Puzzles
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Id == puzzleId);
+
+            if (puzzleToRemove is not null)
+            {
+                db.Puzzles.Remove(puzzleToRemove);
+
+                await db.SaveChangesAsync();
+            }
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Failed to delete the puzzle with the id '{puzzleId}'", puzzleId);
+        }
+    }
+
+    private async Task<Puzzle?> GetPuzzleOrDefaultAsync(Guid puzzleId)
+    {
+        using var db = await _dbContextFactory.CreateDbContextAsync();
+
+        return await db.Puzzles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Id == puzzleId);
+    }
+
+    private async Task<Puzzle> StartPuzzleAsync(bool isDesign, int width, int? maxGuesses, bool isSpellChecking, IEnumerable<string> clues, IEnumerable<string> answers)
     {
         if (width is < Puzzle.VALIDATION_WIDTH_MINIMUM)
         {
@@ -64,12 +243,12 @@ public class PuzzleService : IPuzzleService
         {
             if (maxGuesses.Value is < Puzzle.VALIDATION_MAXGUESSES_MINIMUM)
             {
-                throw new ArgumentLessThanException(Puzzle.VALIDATION_MAXGUESSES_MINIMUM, width);
+                throw new ArgumentLessThanException(Puzzle.VALIDATION_MAXGUESSES_MINIMUM, maxGuesses);
             }
 
             if (maxGuesses.Value is > Puzzle.VALIDATION_MAXGUESSES_MAXIMUM)
             {
-                throw new ArgumentGreaterThanException(Puzzle.VALIDATION_MAXGUESSES_MAXIMUM, width);
+                throw new ArgumentGreaterThanException(Puzzle.VALIDATION_MAXGUESSES_MAXIMUM, maxGuesses);
             }
         }
 
@@ -112,7 +291,7 @@ public class PuzzleService : IPuzzleService
                     throw new WidthMismatchException(invariantText, invariantText.Length, puzzle.Width);
                 }
 
-                if (answersList.Count(ua => string.Equals(ua, answerText, StringComparison.OrdinalIgnoreCase)) is > 1)
+                if (!isDesign && answersList.Count(ua => string.Equals(ua, answerText, StringComparison.OrdinalIgnoreCase)) is > 1)
                 {
                     throw new DuplicateAnswerException(answerText);
                 }
@@ -130,9 +309,9 @@ public class PuzzleService : IPuzzleService
 
                     bool anotherAnswerContainsCharacter = await db.AnswerCharacters
                         .AsNoTracking()
-                        .AnyAsync(ac => ac.AnswerId != answerId && ac.InvariantCharacter == invariantCharacter);
+                        .AnyAsync(ac => ac.PuzzleId == puzzle.Id && ac.AnswerId != answerId && ac.InvariantCharacter == invariantCharacter);
 
-                    if (anotherAnswerContainsCharacter)
+                    if (!isDesign && anotherAnswerContainsCharacter)
                     {
                         throw new DuplicateAnswerCharacterException(invariantCharacter);
                     }
@@ -159,42 +338,49 @@ public class PuzzleService : IPuzzleService
 
             for (int row = 0; row < cluesList.Count; row++)
             {
-                string invariantText = cluesList[row].ToUpperInvariant();
+                string initalInvariantText = cluesList[row].ToUpperInvariant();
 
-                if (invariantText.Length != puzzle.Width)
-                {
-                    throw new WidthMismatchException(invariantText, invariantText.Length, puzzle.Width);
-                }
+                //if (invariantText.Length != puzzle.Width)
+                //{
+                //    throw new WidthMismatchException(invariantText, invariantText.Length, puzzle.Width);
+                //}
 
                 Guid clueId = _guidProvider.NewGuid();
 
+                string invariantText = string.Empty;
+
                 var createdClues = new List<ClueCharacter>();
-                for (int column = 0; column < invariantText.Length; column++)
+                for (int column = 0; column < initalInvariantText.Length; column++)
                 {
-                    char invariantCharacter = invariantText[column];
-
-                    if (!ClueCharacter.VALIDATION_CHARACTERS_SUPPORTED.Contains(invariantCharacter))
+                    if (column < puzzle.Width)
                     {
-                        throw new ClueCharacterNotSupportedException(invariantCharacter, invariantText);
+                        char invariantCharacter = initalInvariantText[column];
+
+                        if (!ClueCharacter.VALIDATION_CHARACTERS_SUPPORTED.Contains(invariantCharacter))
+                        {
+                            throw new ClueCharacterNotSupportedException(invariantCharacter, initalInvariantText);
+                        }
+
+                        var clue = new ClueCharacter
+                        {
+                            PuzzleId = puzzle.Id,
+                            ClueId = clueId,
+                            Row = row,
+                            Column = column,
+                            InvariantCharacter = invariantCharacter,
+                            Hint = Hints.None,
+                        };
+
+                        await _hintService.CalculateHintAsync(clue);
+
+                        await db.ClueCharacters.AddAsync(clue);
+
+                        await db.SaveChangesAsync();
+
+                        createdClues.Add(clue);
+
+                        invariantText += invariantCharacter;
                     }
-
-                    var clue = new ClueCharacter
-                    {
-                        PuzzleId = puzzle.Id,
-                        ClueId = clueId,
-                        Row = row,
-                        Column = column,
-                        InvariantCharacter = invariantCharacter,
-                        Hint = Hints.None,
-                    };
-
-                    await _hintService.CalculateHintAsync(clue);
-
-                    await db.ClueCharacters.AddAsync(clue);
-
-                    await db.SaveChangesAsync();
-
-                    createdClues.Add(clue);
                 }
 
                 await _hintService.PostCalculateHintsAsync(createdClues);
@@ -220,41 +406,13 @@ public class PuzzleService : IPuzzleService
 
             return puzzle;
         }
-        catch
+        catch (Exception e)
         {
-            List<AnswerCharacter> answersToRemove = await db.AnswerCharacters
-                .AsNoTracking()
-                .Where(a => a.PuzzleId == puzzle.Id)
-                .ToListAsync();
-            db.AnswerCharacters.RemoveRange(answersToRemove);
+            _logger.LogError(e, "Failed to start the puzzle.");
 
-            List<ClueCharacter> cluesToRemove = await db.ClueCharacters
-                .AsNoTracking()
-                .Where(c => c.PuzzleId == puzzle.Id)
-                .ToListAsync();
-            db.ClueCharacters.RemoveRange(cluesToRemove);
-
-            Puzzle? puzzleToRemove = await db.Puzzles
-                .AsNoTracking()
-                .FirstOrDefaultAsync(p => p.Id == puzzle.Id);
-
-            if (puzzleToRemove is not null)
-            {
-                db.Puzzles.Remove(puzzleToRemove);
-            }
-
-            await db.SaveChangesAsync();
+            await DeletePuzzleAsync(db, puzzle.Id);
 
             throw;
         }
-    }
-
-    private async Task<Puzzle?> GetPuzzleOrDefaultAsync(Guid puzzleId)
-    {
-        using var db = await _dbContextFactory.CreateDbContextAsync();
-
-        return await db.Puzzles
-            .AsNoTracking()
-            .FirstOrDefaultAsync(p => p.Id == puzzleId);
     }
 }
