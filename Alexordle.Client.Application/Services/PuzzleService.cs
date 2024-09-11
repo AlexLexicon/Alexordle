@@ -2,6 +2,7 @@
 using Alexordle.Client.Application.Database.Entities;
 using Alexordle.Client.Application.Database.Models;
 using Alexordle.Client.Application.Exceptions;
+using Alexordle.Client.Application.Models;
 using Lexicom.DependencyInjection.Primitives;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -12,7 +13,7 @@ public interface IPuzzleService
     Task<bool> PuzzleExistsAsync(Guid puzzleId);
     /// <exception cref="PuzzleDoesNotExistException"></exception>
     Task<Puzzle> GetPuzzleAsync(Guid puzzleId);
-    Task<Puzzle> StartDesignAsync(int width, int? maxGuesses, bool isSpellChecking, IEnumerable<string> clues, IEnumerable<string> answers);
+    Task<PuzzleDesign> CreateDesignAsync(int width, int? maxGuesses, bool isSpellChecking, IEnumerable<string> clues, IEnumerable<string> answers);
     Task<Puzzle> StartPuzzleAsync(int width, int? maxGuesses, bool isSpellChecking, IEnumerable<string> clues, IEnumerable<string> answers);
     Task DeletePuzzlesAsync();
 }
@@ -54,14 +55,18 @@ public class PuzzleService : IPuzzleService
         return puzzle;
     }
 
-    public async Task<Puzzle> StartDesignAsync(int width, int? maxGuesses, bool isSpellChecking, IEnumerable<string> clues, IEnumerable<string> answers)
+    public async Task<PuzzleDesign> CreateDesignAsync(int width, int? maxGuesses, bool isSpellChecking, IEnumerable<string> clues, IEnumerable<string> answers)
     {
-        return await StartPuzzleAsync(isDesign: true, width, maxGuesses, isSpellChecking, clues, answers);
+        (Puzzle _, PuzzleDesign design) = await StartPuzzleAsync(isDesign: true, width, maxGuesses, isSpellChecking, clues, answers);
+
+        return design;
     }
 
     public async Task<Puzzle> StartPuzzleAsync(int width, int? maxGuesses, bool isSpellChecking, IEnumerable<string> clues, IEnumerable<string> answers)
     {
-        return await StartPuzzleAsync(isDesign: false, width, maxGuesses, isSpellChecking, clues, answers);
+        (Puzzle puzzle, PuzzleDesign _) = await StartPuzzleAsync(isDesign: false, width, maxGuesses, isSpellChecking, clues, answers);
+
+        return puzzle;
     }
 
     public async Task DeletePuzzlesAsync()
@@ -227,7 +232,7 @@ public class PuzzleService : IPuzzleService
             .FirstOrDefaultAsync(p => p.Id == puzzleId);
     }
 
-    private async Task<Puzzle> StartPuzzleAsync(bool isDesign, int width, int? maxGuesses, bool isSpellChecking, IEnumerable<string> clues, IEnumerable<string> answers)
+    private async Task<(Puzzle puzzle, PuzzleDesign design)> StartPuzzleAsync(bool isDesign, int width, int? maxGuesses, bool isSpellChecking, IEnumerable<string> clues, IEnumerable<string> answers)
     {
         if (width is < Puzzle.VALIDATION_WIDTH_MINIMUM)
         {
@@ -278,6 +283,11 @@ public class PuzzleService : IPuzzleService
             IsFinished = false,
         };
 
+        var design = new PuzzleDesign
+        {
+            PuzzleId = puzzle.Id,
+        };
+
         using var db = await _dbContextFactory.CreateDbContextAsync();
 
         try
@@ -291,9 +301,16 @@ public class PuzzleService : IPuzzleService
                     throw new WidthMismatchException(invariantText, invariantText.Length, puzzle.Width);
                 }
 
-                if (!isDesign && answersList.Count(ua => string.Equals(ua, answerText, StringComparison.OrdinalIgnoreCase)) is > 1)
+                if (answersList.Count(ua => string.Equals(ua, answerText, StringComparison.OrdinalIgnoreCase)) is > 1)
                 {
-                    throw new DuplicateAnswerException(answerText);
+                    if (!isDesign)
+                    {
+                        throw new DuplicateAnswerException(answerText);
+                    }
+                    else
+                    {
+                        design.HasDuplicateAnswerCharacter = true;
+                    }
                 }
 
                 Guid answerId = _guidProvider.NewGuid();
@@ -311,9 +328,16 @@ public class PuzzleService : IPuzzleService
                         .AsNoTracking()
                         .AnyAsync(ac => ac.PuzzleId == puzzle.Id && ac.AnswerId != answerId && ac.InvariantCharacter == invariantCharacter);
 
-                    if (!isDesign && anotherAnswerContainsCharacter)
+                    if (anotherAnswerContainsCharacter)
                     {
-                        throw new DuplicateAnswerCharacterException(invariantCharacter);
+                        if (!isDesign)
+                        {
+                            throw new DuplicateAnswerCharacterException(invariantCharacter);
+                        }
+                        else
+                        {
+                            design.HasDuplicateAnswerCharacter = true;
+                        }
                     }
 
                     await db.AnswerCharacters.AddAsync(new AnswerCharacter
@@ -383,7 +407,7 @@ public class PuzzleService : IPuzzleService
                     }
                 }
 
-                await _hintService.PostCalculateHintsAsync(createdClues);
+                await _hintService.PostCalculateHintsAsync(puzzle.Id, createdClues);
 
                 await db.Clues.AddAsync(new Clue
                 {
@@ -404,7 +428,7 @@ public class PuzzleService : IPuzzleService
 
             await db.SaveChangesAsync();
 
-            return puzzle;
+            return (puzzle, design);
         }
         catch (Exception e)
         {

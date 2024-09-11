@@ -183,6 +183,7 @@ public class HunchService : IHunchService
 
         int? lastRow = await db.GuessCharacters
             .AsNoTracking()
+            .Where(g => g.PuzzleId == puzzleId)
             .MaxAsync(g => (int?)g.Row);
 
         int row = (lastRow ?? -1) + 1;
@@ -232,7 +233,7 @@ public class HunchService : IHunchService
             throw new DuplicateGuessException(guessInvariantText);
         }
 
-        await _hintService.PostCalculateHintsAsync(guesses);
+        await _hintService.PostCalculateHintsAsync(puzzleId, guesses);
 
         puzzle.CurrentGuesses++;
 
@@ -251,6 +252,11 @@ public class HunchService : IHunchService
 
             isAnswer = true;
             isHuh = false;
+
+            if (isDesign)
+            {
+                await _hintService.PostCalculateDesignAnswerHints(answer.Id, guesses);
+            }
         }
 
         bool defeat = puzzle.MaxGuesses is not null && puzzle.CurrentGuesses >= puzzle.MaxGuesses;

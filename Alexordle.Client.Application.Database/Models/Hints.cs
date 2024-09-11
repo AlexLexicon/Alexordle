@@ -5,4 +5,5 @@ public enum Hints
     Incorrect,
     Elsewhere,
     Correct,
+    Duplicate,
 }

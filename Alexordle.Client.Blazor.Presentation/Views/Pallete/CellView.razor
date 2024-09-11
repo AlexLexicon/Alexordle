@@ -10,6 +10,11 @@
 {
     public string SelectCss()
     {
+        if (ViewModel.Hint is Hints.Duplicate)
+        {
+            return ViewModel.IsHunch ? "hint-hunch-duplicate" : "hint-cell-duplicate";
+        }
+
         if (ViewModel.Hint is Hints.Correct)
         {
             return ViewModel.IsHunch ? "hint-hunch-correct" : "hint-cell-correct";

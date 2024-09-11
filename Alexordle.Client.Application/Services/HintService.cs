@@ -8,7 +8,8 @@ namespace Alexordle.Client.Application.Services;
 public interface IHintService
 {
     Task CalculateHintAsync(Character cell);
-    Task PostCalculateHintsAsync<TCell>(IList<TCell> cells) where TCell : Character;
+    Task PostCalculateHintsAsync<TCell>(Guid puzzleId, IList<TCell> cells) where TCell : Character;
+    Task PostCalculateDesignAnswerHints(Guid answerId, IList<GuessCharacter> guesses);
     Task<Hints> GetKeyboardHintAsync(Guid puzzleId, char invariantCharacter);
 }
 public class HintService : IHintService
@@ -25,7 +26,7 @@ public class HintService : IHintService
         cell.Hint = await CalculateHintAsync(cell.PuzzleId, cell.Column, cell.InvariantCharacter, cell is HunchCharacter);
     }
 
-    public async Task PostCalculateHintsAsync<TCell>(IList<TCell> cells) where TCell : Character
+    public async Task PostCalculateHintsAsync<TCell>(Guid puzzleId, IList<TCell> cells) where TCell : Character
     {
         using var db = await _dbContextFactory.CreateDbContextAsync();
 
@@ -51,9 +52,9 @@ public class HintService : IHintService
                     {
                         int inAnswerCount = await db.AnswerCharacters
                             .AsNoTracking()
-                            .CountAsync(a => a.InvariantCharacter == cell.InvariantCharacter);
+                            .CountAsync(a => a.PuzzleId == puzzleId && a.InvariantCharacter == cell.InvariantCharacter);
 
-                        int inGuessCorrectCount = cells.Count(c => c.InvariantCharacter == cell.InvariantCharacter && c.Hint is Hints.Correct);
+                        int inGuessCorrectCount = cells.Count(c => c.PuzzleId == puzzleId && c.InvariantCharacter == cell.InvariantCharacter && c.Hint is Hints.Correct);
 
                         int remainingElsewheresCount = inAnswerCount - inGuessCorrectCount;
 
@@ -81,6 +82,20 @@ public class HintService : IHintService
                         invariantCharacterToPostHintCount.Add(invariantCharcter, postHintCount);
                     }
                 }
+            }
+        }
+    }
+
+    public async Task PostCalculateDesignAnswerHints(Guid answerId, IList<GuessCharacter> guesses)
+    {
+        using var db = await _dbContextFactory.CreateDbContextAsync();
+
+        foreach (GuessCharacter gueses in guesses)
+        {
+            bool characterExistsInAnotherAnswer = await db.AnswerCharacters.AnyAsync(ac => ac.PuzzleId == gueses.PuzzleId && ac.AnswerId != answerId && ac.InvariantCharacter == gueses.InvariantCharacter);
+            if (characterExistsInAnotherAnswer)
+            {
+                gueses.Hint = Hints.Duplicate;
             }
         }
     }
@@ -159,7 +174,7 @@ public class HintService : IHintService
                 return Hints.Correct;
             }
 
-            bool isAlreadyKnownInColumn = await IsAlreadyKnownInColumn(db, column, invariantCharacter, Hints.Correct);
+            bool isAlreadyKnownInColumn = await IsAlreadyKnownInColumn(db, puzzleId, column, invariantCharacter, Hints.Correct);
             if (isAlreadyKnownInColumn)
             {
                 return Hints.Correct;
@@ -168,7 +183,7 @@ public class HintService : IHintService
 
         bool isElsewhere = await db.AnswerCharacters
             .AsNoTracking()
-            .AnyAsync(a => a.InvariantCharacter == invariantCharacter);
+            .AnyAsync(a => a.PuzzleId == puzzleId && a.InvariantCharacter == invariantCharacter);
 
         if (isElsewhere)
         {
@@ -177,13 +192,13 @@ public class HintService : IHintService
                 return Hints.Elsewhere;
             }
 
-            bool isAlreadyKnownInColumn = await IsAlreadyKnownInColumn(db, column, invariantCharacter, Hints.None);
+            bool isAlreadyKnownInColumn = await IsAlreadyKnownInColumn(db, puzzleId, column, invariantCharacter, Hints.None);
             if (isAlreadyKnownInColumn)
             {
                 return Hints.Incorrect;
             }
 
-            isAlreadyKnownInColumn = await IsAlreadyKnownInColumn(db, column, invariantCharacter, Hints.Elsewhere);
+            isAlreadyKnownInColumn = await IsAlreadyKnownInColumn(db, puzzleId, column, invariantCharacter, Hints.Elsewhere);
             if (isAlreadyKnownInColumn)
             {
                 return Hints.Elsewhere;
@@ -194,7 +209,7 @@ public class HintService : IHintService
 
         if (isHunch)
         {
-            bool isAlreadyKnown = await IsAlreadyKnown(db, invariantCharacter);
+            bool isAlreadyKnown = await IsAlreadyKnown(db, puzzleId, invariantCharacter);
 
             return isAlreadyKnown ? Hints.Incorrect : Hints.None;
         }
@@ -202,11 +217,11 @@ public class HintService : IHintService
         return Hints.Incorrect;
     }
 
-    private async Task<bool> IsAlreadyKnownInColumn(AlexordleDbContext db, int column, char invariantCharacter, Hints hint)
+    private async Task<bool> IsAlreadyKnownInColumn(AlexordleDbContext db, Guid puzzleId, int column, char invariantCharacter, Hints hint)
     {
         bool alreadyUnKnown = await db.ClueCharacters
             .AsNoTracking()
-            .AnyAsync(g => g.Column == column && g.InvariantCharacter == invariantCharacter && g.Hint == hint);
+            .AnyAsync(g => g.PuzzleId == puzzleId && g.Column == column && g.InvariantCharacter == invariantCharacter && g.Hint == hint);
 
         if (alreadyUnKnown)
         {
@@ -215,14 +230,14 @@ public class HintService : IHintService
 
         return await db.GuessCharacters
             .AsNoTracking()
-            .AnyAsync(g => g.Column == column && g.InvariantCharacter == invariantCharacter && g.Hint == hint);
+            .AnyAsync(g => g.PuzzleId == puzzleId && g.Column == column && g.InvariantCharacter == invariantCharacter && g.Hint == hint);
     }
 
-    private async Task<bool> IsAlreadyKnown(AlexordleDbContext db, char invariantCharacter)
+    private async Task<bool> IsAlreadyKnown(AlexordleDbContext db, Guid puzzleId, char invariantCharacter)
     {
         bool alreadyUnKnown = await db.ClueCharacters
             .AsNoTracking()
-            .AnyAsync(g => g.InvariantCharacter == invariantCharacter);
+            .AnyAsync(g => g.PuzzleId == puzzleId && g.InvariantCharacter == invariantCharacter);
 
         if (alreadyUnKnown)
         {
@@ -231,6 +246,6 @@ public class HintService : IHintService
 
         return await db.GuessCharacters
             .AsNoTracking()
-            .AnyAsync(g => g.InvariantCharacter == invariantCharacter);
+            .AnyAsync(g => g.PuzzleId == puzzleId && g.InvariantCharacter == invariantCharacter);
     }
 }

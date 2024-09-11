@@ -16,5 +16,7 @@ public partial class ListInputViewModel : InputViewModel
     private async Task RemoveAsync()
     {
         await _mediator.Publish(new RemoveListInputViewModelNotification(this));
+
+        await DesignChangedAsync();
     }
 }

@@ -118,6 +118,8 @@ public partial class PuzzlePageViewModel : ObservableObject, INotificationHandle
 
             try
             {
+                await _puzzleService.DeletePuzzlesAsync();
+
                 SerializedPuzzle = QueryString;
 
                 //the query string is automatically decoded by blazor but we want to keep it encoded.

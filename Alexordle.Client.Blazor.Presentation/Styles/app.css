@@ -156,7 +156,7 @@ body {
 }
 
 .designer-secondary-button-disabled {
-    @apply p-2 text-gray-400 bg-none border-slate-300 border cursor-not-allowed;
+    @apply p-2 text-gray-400 bg-none border-slate-400 border cursor-not-allowed;
 }
 
 .designer-add-button {
@@ -191,6 +191,10 @@ body {
     @apply uppercase justify-center font-extrabold font-mono text-2xl md:text-2xl;
 }
 
+.hint-cell-duplicate {
+    @apply bg-red-700 border-red-800 text-white;
+}
+
 .hint-cell-correct {
     @apply bg-emerald-700 border-emerald-800 text-white;
 }
@@ -205,6 +209,10 @@ body {
 
 .hint-cell-none {
     @apply bg-none border-gray-400 text-black;
+}
+
+.hint-hunch-duplicate {
+    @apply bg-none border-red-800 text-black border-dashed;
 }
 
 .hint-hunch-correct {

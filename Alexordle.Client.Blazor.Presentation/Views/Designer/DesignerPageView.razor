@@ -52,14 +52,6 @@
                                 </svg>
                             </button>
                         </div>
-                        @if (ViewModel.AnswerInputViewModels.Count is <= 0)
-                        {
-                            <ul class="lexicom-textinput-errors">
-                                <li class="lexicom-textinput-error">
-                                    A puzzle must have at least one answer.
-                                </li>
-                            </ul>
-                        }
                         @foreach (ListInputViewModel answerListInputViewModel in ViewModel.AnswerInputViewModels)
                         {
                             <ListInputView ViewModel="answerListInputViewModel" />
@@ -72,19 +64,33 @@
                         <div class="flex flex-row items-center">
                             <input type="checkbox" @bind="ViewModel.IsSpellChecking" @bind:after="@ViewModel.IsSpellCheckingChangedCommand.BindAfter()" class="designer-checkbox">
                             <p class="designer-checkbox-label">
-                            Guesses must match an answer or be within the word list.
+                                Guesses must match an answer or be within the word list.
                             </p>
                         </div>
+                    </div>
+                    <div>
+                        <ul class="lexicom-textinput-errors">
+                            @if (!ViewModel.IsEnoughAnswers)
+                            {
+                                <li class="lexicom-textinput-error">
+                                    A puzzle must have at least one answer.
+                                </li>
+                            }
+                            @if (ViewModel.HasDuplicateAnswerCharacter)
+                            {
+                                <li class="lexicom-textinput-error">
+                                    Multiple answers cannot share the same character.
+                                </li>
+                            }
+                        </ul>
                     </div>
                 </div>
                 <div class="w-full flex justify-center mt-4">
                     <div class="grid grid-cols-2 gap-2.5 w-3/5">
-                        <button type="button" @onclick="ViewModel.ShareCommand.Bind()" class="designer-button">
-                            @* @(ViewModel.IsPlayable ? "designer-secondary-button-enabled" : "designer-secondary-button-disabled") *@
+                        <button type="button" @onclick="ViewModel.ShareCommand.Bind()" class="designer-button @(ViewModel.IsValid && !ViewModel.IsLoading ? "designer-secondary-button-enabled" : "designer-secondary-button-disabled")">
                             Copy Link
                         </button>
-                        <button type="button" @onclick="ViewModel.PlayCommand.Bind()" class="designer-button">
-                            @* @(ViewModel.IsPlayable ? "designer-primary-button-enabled" : "designer-primary-button-disabled") *@
+                        <button type="button" @onclick="ViewModel.PlayCommand.Bind()" class="designer-button @(ViewModel.IsValid && !ViewModel.IsLoading ? "designer-primary-button-enabled" : "designer-primary-button-disabled")">
                             Play
                         </button>
                     </div>

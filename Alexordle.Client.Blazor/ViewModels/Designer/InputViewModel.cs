@@ -26,14 +26,21 @@ public partial class InputViewModel : ObservableObject
     [ObservableProperty]
     private IRuleSetValidator<string?> _textValidator;
 
-    public async Task UpdateValidatorAsync()
+    public async Task<bool> CheckAndValidateAsync()
     {
         await TextValidator.ValidateAsync(Text);
+
+        return TextValidator.IsValid;
+    }
+
+    protected async Task DesignChangedAsync()
+    {
+        await _mediator.Publish(new DesignChangedNotification());
     }
 
     [RelayCommand]
     private async Task TextChangedAsync()
     {
-        await _mediator.Publish(new DesignChangedNotification());
+        await DesignChangedAsync();
     }
 }
