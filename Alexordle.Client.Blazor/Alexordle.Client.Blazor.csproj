@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Lexicom.Concentrate.Blazor.WebAssembly.Amenities.Abstractions" Version="8.0.116" />
+    <PackageReference Include="Lexicom.Concentrate.Blazor.WebAssembly.Amenities.Abstractions" Version="8.0.118" />
     <PackageReference Include="Lexicom.Extensions.Strings" Version="8.0.90" />
     <PackageReference Include="Lexicom.Mvvm.Amenities" Version="8.0.90" />
     <PackageReference Include="Lexicom.Validation.Amenities" Version="8.0.90" />

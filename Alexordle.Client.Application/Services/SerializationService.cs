@@ -1,5 +1,6 @@
 ﻿using Alexordle.Client.Application.Database.Entities;
 using Alexordle.Client.Application.Exceptions;
+using Alexordle.Client.Application.Models;
 using System.Text;
 using System.Web;
 
@@ -7,12 +8,18 @@ namespace Alexordle.Client.Application.Services;
 public interface ISerializationService
 {
     Task<string> EncodeSerializedPuzzleForUrlAsync(string decodedBase64SerializedPuzzleString);
-    /// <exception cref="PuzzleDoesNotExistException"></exception>
+    /// <exception cref="SerializePuzzleException"></exception>
     Task<string> SerializePuzzleAsync(Guid puzzleId);
+    /// <exception cref="SerializePalleteException"></exception>
     Task<string> SerializePalleteAsync(Guid puzzleId);
+    /// <exception cref="SerializeDesignException"></exception>
+    Task<string> SerializeDesignAsync(Guid puzzleId);
+    /// <exception cref="DeserializePuzzleException"></exception>
     Task<Puzzle> DeserializeAndStartPuzzleAsync(string serializedPuzzle);
-    /// <exception cref="PuzzleDoesNotExistException"></exception>
+    /// <exception cref="DeserializePalleteException"></exception>
     Task DeserializePalleteAsync(Guid puzzleId, string serializedPallete);
+    /// <exception cref="DeserializeDesignException"></exception>
+    Task<Design> DeserializeDesignAsync(string base64SerializedDesign);
 }
 public class SerializationService : ISerializationService
 {
@@ -51,39 +58,9 @@ public class SerializationService : ISerializationService
     {
         try
         {
-            var getPuzzleTask = _puzzleService.GetPuzzleAsync(puzzleId);
-            var getAnswerInvariantTextsTask = _answerService.GetAnswerInvariantTextsAsync(puzzleId);
-            var getClueInvariantTextsTask = _clueService.GetClueInvariantTextsAsync(puzzleId);
+            string base64SerializedPuzzleString = await SerializePuzzleToBase64Async(puzzleId);
 
-            Puzzle puzzle = await getPuzzleTask;
-            IReadOnlyList<string> answers = await getAnswerInvariantTextsTask;
-            IReadOnlyList<string> clues = await getClueInvariantTextsTask;
-
-            if (ContainsSpecialCharacters(clues) || ContainsSpecialCharacters(answers))
-            {
-                throw new Exception($"The special chracters '{SERIALIZATION_DELIMITER_PRIMARY}' and '{SERIALIZATION_DELIMITER_SECONDARY}' cannot be provided.");
-            }
-
-            string widthString = puzzle.Width.ToString();
-            string maxGuessesString = (puzzle.MaxGuesses ?? -1).ToString();
-            string isSpellCheckingString = (puzzle.IsSpellChecking ? 1 : 0).ToString();
-            string cluesString = string.Join(SERIALIZATION_DELIMITER_SECONDARY, clues);
-            string answersString = string.Join(SERIALIZATION_DELIMITER_SECONDARY, answers);
-
-            if (ContainsSpecialCharacters(maxGuessesString, widthString, isSpellCheckingString))
-            {
-                throw new Exception($"The special chracters '{SERIALIZATION_DELIMITER_PRIMARY}' and '{SERIALIZATION_DELIMITER_SECONDARY}' cannot be provided.");
-            }
-
-            string decodedSerializedPuzzleString = string.Join(SERIALIZATION_DELIMITER_PRIMARY, maxGuessesString, widthString, isSpellCheckingString, cluesString, answersString);
-
-            decodedSerializedPuzzleString += SERIALIZATION_DELIMITER_PRIMARY; //we append the delimiter at the end to better detect malformed codes.
-
-            byte[] decodedSerializedPuzzleBytes = Encoding.Default.GetBytes(decodedSerializedPuzzleString);
-
-            string decodedBase64SerializedPuzzleString = Convert.ToBase64String(decodedSerializedPuzzleBytes);
-
-            return await EncodeSerializedPuzzleForUrlAsync(decodedBase64SerializedPuzzleString);
+            return await EncodeSerializedPuzzleForUrlAsync(base64SerializedPuzzleString);
         }
         catch (Exception e)
         {
@@ -147,48 +124,32 @@ public class SerializationService : ISerializationService
         }
     }
 
+    public async Task<string> SerializeDesignAsync(Guid puzzleId)
+    {
+        try
+        {
+            return await SerializePuzzleToBase64Async(puzzleId);
+        }
+        catch (Exception e)
+        {
+            throw new SerializeDesignException(puzzleId, e);
+        }
+    }
+
     public async Task<Puzzle> DeserializeAndStartPuzzleAsync(string serializedPuzzle)
     {
         try
         {
-            string packBase64 = HttpUtility.UrlDecode(serializedPuzzle);
+            string base64SerializedPuzzleString = HttpUtility.UrlDecode(serializedPuzzle);
 
-            byte[] packBytes = Convert.FromBase64String(packBase64);
+            Design design = GetDesignFromSerializedBase64Puzzle(base64SerializedPuzzleString);
 
-            string packString = Encoding.Default.GetString(packBytes);
-
-            string[] parts = packString.Split(SERIALIZATION_DELIMITER_PRIMARY);
-
-            if (parts.Length is > SERIALIZED_PUZZLE_PARTS_COUNT)
-            {
-                throw new Exception("too many parts.");
-            }
-
-            if (parts.Length is < SERIALIZED_PUZZLE_PARTS_COUNT)
-            {
-                throw new Exception("too few parts.");
-            }
-
-            string widthString = parts[0];
-            string maxGuessesString = parts[1];
-            string isSpellCheckingString = parts[2];
-            string cluesString = parts[3];
-            string answersString = parts[4];
-
-            int maxGuesses = int.Parse(widthString);
-            int width = int.Parse(maxGuessesString);
-            bool isSpellChecking = int.Parse(isSpellCheckingString) is 1;
-            string[] clues = cluesString.Split(SERIALIZATION_DELIMITER_SECONDARY);
-            string[] answers = answersString.Split(SERIALIZATION_DELIMITER_SECONDARY);
-
-            if (answers.Length is <= 0)
+            if (design.Answers.Count is <= 0)
             {
                 throw new Exception("no answers.");
             }
 
-            int? nullableMaxGuesses = maxGuesses is > 0 ? maxGuesses : null;
-
-            return await _puzzleService.StartPuzzleAsync(width, nullableMaxGuesses, isSpellChecking, clues, answers);
+            return await _puzzleService.StartPuzzleAsync(design.Width, design.MaxGuesses, design.IsSpellChecking, design.Clues, design.Answers);
         }
         catch (Exception e)
         {
@@ -283,6 +244,108 @@ public class SerializationService : ISerializationService
         {
             throw new DeserializePalleteException(serializedPallete, e);
         }
+    }
+
+    public Task<Design> DeserializeDesignAsync(string base64SerializedDesign)
+    {
+        try
+        {
+            Design design = GetDesignFromSerializedBase64Puzzle(base64SerializedDesign);
+
+            return Task.FromResult(design);
+        }
+        catch (Exception e)
+        {
+            throw new DeserializeDesignException(base64SerializedDesign, e);
+        }
+    }
+
+    private async Task<string> SerializePuzzleToBase64Async(Guid puzzleId)
+    {
+        var getPuzzleTask = _puzzleService.GetPuzzleAsync(puzzleId);
+        var getAnswerInvariantTextsTask = _answerService.GetAnswerInvariantTextsAsync(puzzleId);
+        var getClueInvariantTextsTask = _clueService.GetClueInvariantTextsAsync(puzzleId);
+
+        Puzzle puzzle = await getPuzzleTask;
+        IReadOnlyList<string> answers = await getAnswerInvariantTextsTask;
+        IReadOnlyList<string> clues = await getClueInvariantTextsTask;
+
+        if (ContainsSpecialCharacters(clues) || ContainsSpecialCharacters(answers))
+        {
+            throw new Exception($"The special chracters '{SERIALIZATION_DELIMITER_PRIMARY}' and '{SERIALIZATION_DELIMITER_SECONDARY}' cannot be provided.");
+        }
+
+        answers = answers
+            .Select(a => a.TrimEnd())
+            .ToList();
+
+        clues = clues
+            .Select(c => c.TrimEnd())
+            .ToList();
+
+        string widthString = puzzle.Width.ToString();
+        string maxGuessesString = puzzle.MaxGuesses?.ToString() ?? string.Empty;
+        string isSpellCheckingString = (puzzle.IsSpellChecking ? 1 : 0).ToString();
+        string cluesString = string.Join(SERIALIZATION_DELIMITER_SECONDARY, clues);
+        string answersString = string.Join(SERIALIZATION_DELIMITER_SECONDARY, answers);
+
+        if (ContainsSpecialCharacters(maxGuessesString, widthString, isSpellCheckingString))
+        {
+            throw new Exception($"The special chracters '{SERIALIZATION_DELIMITER_PRIMARY}' and '{SERIALIZATION_DELIMITER_SECONDARY}' cannot be provided.");
+        }
+
+        string decodedSerializedPuzzleString = string.Join(SERIALIZATION_DELIMITER_PRIMARY, widthString, maxGuessesString, isSpellCheckingString, cluesString, answersString);
+
+        decodedSerializedPuzzleString += SERIALIZATION_DELIMITER_PRIMARY; //we append the delimiter at the end to better detect malformed codes.
+
+        byte[] decodedSerializedPuzzleBytes = Encoding.Default.GetBytes(decodedSerializedPuzzleString);
+
+        return Convert.ToBase64String(decodedSerializedPuzzleBytes);
+    }
+
+    private Design GetDesignFromSerializedBase64Puzzle(string base64SerializedPuzzleString)
+    {
+        byte[] decodedSerializedPuzzleBytes = Convert.FromBase64String(base64SerializedPuzzleString);
+
+        string decodedSerializedPuzzleString = Encoding.Default.GetString(decodedSerializedPuzzleBytes);
+
+        string[] parts = decodedSerializedPuzzleString.Split(SERIALIZATION_DELIMITER_PRIMARY);
+
+        if (parts.Length is > SERIALIZED_PUZZLE_PARTS_COUNT)
+        {
+            throw new Exception("too many parts.");
+        }
+
+        if (parts.Length is < SERIALIZED_PUZZLE_PARTS_COUNT)
+        {
+            throw new Exception("too few parts.");
+        }
+
+        string widthString = parts[0];
+        string maxGuessesString = parts[1];
+        string isSpellCheckingString = parts[2];
+        string cluesString = parts[3];
+        string answersString = parts[4];
+
+        int width = int.Parse(widthString);
+        int? maxGuesses = string.IsNullOrWhiteSpace(maxGuessesString) ? null : int.Parse(maxGuessesString);
+        bool isSpellChecking = int.Parse(isSpellCheckingString) is 1;
+
+        string[] clues = cluesString
+            .Split(SERIALIZATION_DELIMITER_SECONDARY)
+            .Where(c => !string.IsNullOrWhiteSpace(c))
+            .ToArray();
+
+        string[] answers = answersString.Split(SERIALIZATION_DELIMITER_SECONDARY);
+
+        return new Design
+        {
+            Width = width,
+            MaxGuesses = maxGuesses,
+            IsSpellChecking = isSpellChecking,
+            Clues = clues,
+            Answers = answers,
+        };
     }
 
     private bool ContainsSpecialCharacters(params string[] parts) => ContainsSpecialCharacters(partsEnumerable: parts);

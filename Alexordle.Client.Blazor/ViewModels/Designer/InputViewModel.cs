@@ -15,6 +15,8 @@ public partial class InputViewModel : ObservableObject
     {
         _mediator = mediator;
         TextValidator = textValidator;
+
+        IsInputVisible = true;
     }
 
     [ObservableProperty]
@@ -22,6 +24,9 @@ public partial class InputViewModel : ObservableObject
 
     [ObservableProperty]
     private string? _text;
+
+    [ObservableProperty]
+    private bool _isInputVisible;
 
     [ObservableProperty]
     private IRuleSetValidator<string?> _textValidator;

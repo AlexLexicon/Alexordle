@@ -2,7 +2,6 @@
 using Alexordle.Client.Application.Models;
 using Alexordle.Client.Application.Services;
 using Alexordle.Client.Blazor.Factories;
-using Alexordle.Client.Blazor.Models;
 using Alexordle.Client.Blazor.Notifications;
 using Alexordle.Client.Blazor.Validations;
 using Alexordle.Client.Blazor.Validations.RuleSets;
@@ -27,6 +26,7 @@ public partial class DesignerPageViewModel : ObservableObject, INotificationHand
     private readonly IHunchService _hunchService;
     private readonly ISerializationService _serializationService;
     private readonly IClipboardService _clipboardService;
+    private readonly IPersistenceService _persistenceService;
     private readonly DesignerWidthValidation _designerWidthValidation;
     private readonly DesignerAnswersCountValidation _designerAnswersCountValidation;
 
@@ -40,6 +40,7 @@ public partial class DesignerPageViewModel : ObservableObject, INotificationHand
         IHunchService hunchService,
         ISerializationService serializationService,
         IClipboardService clipboardService,
+        IPersistenceService persistenceService,
         PalleteViewModel palleteViewModel,
         DesignerWidthValidation designerWidthValidation,
         DesignerAnswersCountValidation designerAnswersCountValidation)
@@ -55,6 +56,7 @@ public partial class DesignerPageViewModel : ObservableObject, INotificationHand
         _designerWidthValidation = designerWidthValidation;
         _designerAnswersCountValidation = designerAnswersCountValidation;
         _clipboardService = clipboardService;
+        _persistenceService = persistenceService;
 
         PalleteViewModel = palleteViewModel;
 
@@ -67,6 +69,9 @@ public partial class DesignerPageViewModel : ObservableObject, INotificationHand
 
     [ObservableProperty]
     private bool _isLoading;
+
+    [ObservableProperty]
+    private bool _isInfiniteGuesses;
 
     [ObservableProperty]
     private bool _isSpellChecking;
@@ -115,8 +120,7 @@ public partial class DesignerPageViewModel : ObservableObject, INotificationHand
 
     public Task Handle(DesignChangedNotification notification, CancellationToken cancellationToken)
     {
-        IsLoading = true;
-        IsChanged = true;
+        DesignChanged();
 
         return Task.CompletedTask;
     }
@@ -140,29 +144,33 @@ public partial class DesignerPageViewModel : ObservableObject, INotificationHand
     }
 
     [RelayCommand]
-    private void Loaded()
+    private async Task LoadedAsync()
     {
         WidthInputViewModel = _inputViewModelFactory.CreateInputViewModel<WidthRuleSet>("Width");
         MaxGuessesInputViewModel = _inputViewModelFactory.CreateInputViewModel<MaxGuessesRuleSet>("Maximum Guesses");
 
-        WidthInputViewModel.Text = "5";
-        MaxGuessesInputViewModel.Text = "8";
+        Design? design = await _persistenceService.LoadDesignAsync();
+        await ResetDesignAsync(design);
     }
 
     [RelayCommand]
     private void AddAnswer()
     {
-        var answerListInputViewModel = _inputViewModelFactory.CreateListInputViewModel<AnswerRuleSet>();
-
-        AnswerInputViewModels.Add(answerListInputViewModel);
+        CreateAnswer();
     }
 
     [RelayCommand]
     private void AddClue()
     {
-        var clueListInputViewModel = _inputViewModelFactory.CreateListInputViewModel<ClueRuleSet>();
+        CreateClue();
+    }
 
-        ClueInputViewModels.Add(clueListInputViewModel);
+    [RelayCommand]
+    private async Task ResetAsync()
+    {
+        await ResetDesignAsync(null);
+
+        DesignChanged();
     }
 
     [RelayCommand]
@@ -198,16 +206,27 @@ public partial class DesignerPageViewModel : ObservableObject, INotificationHand
     }
 
     [RelayCommand]
-    private async Task IsSpellCheckingChangedAsync()
+    private void IsSpellCheckingChanged()
     {
-        await GeneratePuzzleAsync();
+        DesignChanged();
+    }
+
+    [RelayCommand]
+    private void IsInfiniteGuessesChanged()
+    {
+        if (MaxGuessesInputViewModel is not null)
+        {
+            MaxGuessesInputViewModel.IsInputVisible = !IsInfiniteGuesses;
+        }
+
+        DesignChanged();
     }
 
     private async Task<string> SerializePuzzleAsync()
     {
-        DesignValues designValues = GetDesignValues();
+        Design design = CreateDesign();
 
-        Puzzle puzzle = await _puzzleService.StartPuzzleAsync(designValues.Width, designValues.MaxGuesses, designValues.IsSpellChecking, designValues.Clues, designValues.Answers);
+        Puzzle puzzle = await _puzzleService.StartPuzzleAsync(design.Width, design.MaxGuesses, design.IsSpellChecking, design.Clues, design.Answers);
 
         return await _serializationService.SerializePuzzleAsync(puzzle.Id);
     }
@@ -220,13 +239,13 @@ public partial class DesignerPageViewModel : ObservableObject, INotificationHand
         {
             await _puzzleService.DeletePuzzlesAsync();
 
-            DesignValues designValues = GetDesignValues();
+            Design design = CreateDesign();
 
-            PuzzleDesign design = await _puzzleService.CreateDesignAsync(designValues.Width, designValues.MaxGuesses, designValues.IsSpellChecking, designValues.Clues, designValues.Answers);
+            DesignResult result = await _puzzleService.CreateDesignAsync(design.Width, design.MaxGuesses, design.IsSpellChecking, design.Clues, design.Answers);
 
-            foreach (string answer in designValues.Answers)
+            foreach (string answer in design.Answers)
             {
-                for (int index = 0; index < designValues.Width; index++)
+                for (int index = 0; index < design.Width; index++)
                 {
                     char character = ' ';
                     if (index < answer.Length)
@@ -239,52 +258,17 @@ public partial class DesignerPageViewModel : ObservableObject, INotificationHand
                         }
                     }
 
-                    await _hunchService.AppendCharacterToHunchAsync(design.PuzzleId, character);
+                    await _hunchService.AppendCharacterToHunchAsync(result.PuzzleId, character);
                 }
 
-                await _hunchService.SubmitDesignHunchAsync(design.PuzzleId);
+                await _hunchService.SubmitDesignHunchAsync(result.PuzzleId);
             }
 
-            _designerWidthValidation.CurrentWidth = designValues.Width;
-            _designerAnswersCountValidation.CurrentAnswersCount = AnswerInputViewModels.Count;
+            await CheckAndValidateAsync(design.Width, result.HasDuplicateAnswerCharacter);
 
-            HasDuplicateAnswerCharacter = design.HasDuplicateAnswerCharacter;
+            await _persistenceService.SaveDesignAsync(result.PuzzleId);
 
-            IsValid = IsEnoughAnswers && !HasDuplicateAnswerCharacter;
-            if (WidthInputViewModel is not null)
-            {
-                bool isValid = await WidthInputViewModel.CheckAndValidateAsync();
-                if (!isValid)
-                {
-                    IsValid = false;
-                }
-            }
-            if (MaxGuessesInputViewModel is not null)
-            {
-                bool isValid = await MaxGuessesInputViewModel.CheckAndValidateAsync();
-                if (!isValid)
-                {
-                    IsValid = false;
-                }
-            }
-            foreach (ListInputViewModel answerInputViewModel in AnswerInputViewModels)
-            {
-                bool isValid = await answerInputViewModel.CheckAndValidateAsync();
-                if (!isValid)
-                {
-                    IsValid = false;
-                }
-            }
-            foreach (ListInputViewModel clueInputViewModel in ClueInputViewModels)
-            {
-                bool isValid = await clueInputViewModel.CheckAndValidateAsync();
-                if (!isValid)
-                {
-                    IsValid = false;
-                }
-            }
-
-            await _mediator.Publish(new PalleteUpdateNotification(design.PuzzleId));
+            await _mediator.Publish(new PalleteUpdateNotification(result.PuzzleId));
 
             IsSuccessfullyGenerated = true;
         }
@@ -294,7 +278,7 @@ public partial class DesignerPageViewModel : ObservableObject, INotificationHand
         }
     }
 
-    private DesignValues GetDesignValues()
+    private Design CreateDesign()
     {
         if (!int.TryParse(WidthInputViewModel?.Text, out int width))
         {
@@ -317,11 +301,16 @@ public partial class DesignerPageViewModel : ObservableObject, INotificationHand
             answers.Add(new string(' ', width));
         }
 
-        if (!int.TryParse(MaxGuessesInputViewModel?.Text, out int maxGuesses))
+        int? nullableMaxGuesses = null;
+        if (!IsInfiniteGuesses)
         {
-            maxGuesses = Math.Max(8 - answers.Count, 1);
+            if (!int.TryParse(MaxGuessesInputViewModel?.Text, out int maxGuesses))
+            {
+                maxGuesses = Math.Max(8 - answers.Count, 1);
+            }
+
+            nullableMaxGuesses = Math.Min(maxGuesses, Puzzle.VALIDATION_MAXGUESSES_MAXIMUM);
         }
-        maxGuesses = Math.Min(maxGuesses, Puzzle.VALIDATION_MAXGUESSES_MAXIMUM);
 
         var clues = new List<string>();
         foreach (ListInputViewModel clueInputViewModel in ClueInputViewModels)
@@ -332,13 +321,120 @@ public partial class DesignerPageViewModel : ObservableObject, INotificationHand
             }
         }
 
-        return new DesignValues
+        return new Design
         {
             Width = width,
-            MaxGuesses = maxGuesses,
+            MaxGuesses = nullableMaxGuesses,
+            IsSpellChecking = IsSpellChecking,
             Clues = clues,
             Answers = answers,
-            IsSpellChecking = IsSpellChecking,
         };
+    }
+
+    private async Task ResetDesignAsync(Design? design)
+    {
+        int width = design?.Width ?? 5;
+
+        if (WidthInputViewModel is not null)
+        {
+            WidthInputViewModel.Text = width.ToString();
+        }
+
+        if (MaxGuessesInputViewModel is not null)
+        {
+            MaxGuessesInputViewModel.Text = design?.MaxGuesses.ToString() ?? "8";
+        }
+
+        IsSpellChecking = design?.IsSpellChecking ?? true;
+
+        ClueInputViewModels.Clear();
+        AnswerInputViewModels.Clear();
+
+        if (design is not null)
+        {
+            foreach (string clue in design.Clues)
+            {
+                CreateClue(clue);
+            }
+            foreach (string answer in design.Answers)
+            {
+                CreateAnswer(answer);
+            }
+        }
+        else
+        {
+            CreateClue("SPELL");
+            CreateAnswer("GAMES");
+        }
+
+        IsEnoughAnswers = AnswerInputViewModels.Count is > 0;
+
+        await CheckAndValidateAsync(width, false);
+    }
+
+    private async Task CheckAndValidateAsync(int width, bool hasDuplicateAnswerCharacter)
+    {
+        _designerWidthValidation.CurrentWidth = width;
+        _designerAnswersCountValidation.CurrentAnswersCount = AnswerInputViewModels.Count;
+
+        HasDuplicateAnswerCharacter = hasDuplicateAnswerCharacter;
+
+        IsValid = IsEnoughAnswers && !HasDuplicateAnswerCharacter;
+        if (WidthInputViewModel is not null)
+        {
+            bool isValid = await WidthInputViewModel.CheckAndValidateAsync();
+            if (!isValid)
+            {
+                IsValid = false;
+            }
+        }
+        if (MaxGuessesInputViewModel is not null)
+        {
+            bool isValid = await MaxGuessesInputViewModel.CheckAndValidateAsync();
+            if (!isValid)
+            {
+                IsValid = false;
+            }
+        }
+        foreach (ListInputViewModel answerInputViewModel in AnswerInputViewModels)
+        {
+            bool isValid = await answerInputViewModel.CheckAndValidateAsync();
+            if (!isValid)
+            {
+                IsValid = false;
+            }
+        }
+        foreach (ListInputViewModel clueInputViewModel in ClueInputViewModels)
+        {
+            bool isValid = await clueInputViewModel.CheckAndValidateAsync();
+            if (!isValid)
+            {
+                IsValid = false;
+            }
+        }
+    }
+
+    private void DesignChanged()
+    {
+        IsLoading = true;
+        IsChanged = true;
+    }
+
+    private void CreateAnswer(string? answer = null)
+    {
+        var answerListInputViewModel = _inputViewModelFactory.CreateListInputViewModel<AnswerRuleSet>();
+
+        answerListInputViewModel.Text = answer;
+
+        AnswerInputViewModels.Add(answerListInputViewModel);
+    }
+
+    private void CreateClue(string? clue = null)
+    {
+        var clueListInputViewModel = _inputViewModelFactory.CreateListInputViewModel<ClueRuleSet>();
+
+        clueListInputViewModel.Text = clue;
+
+        ClueInputViewModels.Add(clueListInputViewModel);
     }
 }

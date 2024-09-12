@@ -1,5 +1,5 @@
 ﻿namespace Alexordle.Client.Application.Models;
-public class PuzzleDesign
+public class DesignResult
 {
     public required Guid PuzzleId { get; init; }
     public bool HasDuplicateAnswerCharacter { get; set; }

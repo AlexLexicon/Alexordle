@@ -13,7 +13,7 @@ public interface IPuzzleService
     Task<bool> PuzzleExistsAsync(Guid puzzleId);
     /// <exception cref="PuzzleDoesNotExistException"></exception>
     Task<Puzzle> GetPuzzleAsync(Guid puzzleId);
-    Task<PuzzleDesign> CreateDesignAsync(int width, int? maxGuesses, bool isSpellChecking, IEnumerable<string> clues, IEnumerable<string> answers);
+    Task<DesignResult> CreateDesignAsync(int width, int? maxGuesses, bool isSpellChecking, IEnumerable<string> clues, IEnumerable<string> answers);
     Task<Puzzle> StartPuzzleAsync(int width, int? maxGuesses, bool isSpellChecking, IEnumerable<string> clues, IEnumerable<string> answers);
     Task DeletePuzzlesAsync();
 }
@@ -55,16 +55,16 @@ public class PuzzleService : IPuzzleService
         return puzzle;
     }
 
-    public async Task<PuzzleDesign> CreateDesignAsync(int width, int? maxGuesses, bool isSpellChecking, IEnumerable<string> clues, IEnumerable<string> answers)
+    public async Task<DesignResult> CreateDesignAsync(int width, int? maxGuesses, bool isSpellChecking, IEnumerable<string> clues, IEnumerable<string> answers)
     {
-        (Puzzle _, PuzzleDesign design) = await StartPuzzleAsync(isDesign: true, width, maxGuesses, isSpellChecking, clues, answers);
+        (Puzzle _, DesignResult design) = await StartPuzzleAsync(isDesign: true, width, maxGuesses, isSpellChecking, clues, answers);
 
         return design;
     }
 
     public async Task<Puzzle> StartPuzzleAsync(int width, int? maxGuesses, bool isSpellChecking, IEnumerable<string> clues, IEnumerable<string> answers)
     {
-        (Puzzle puzzle, PuzzleDesign _) = await StartPuzzleAsync(isDesign: false, width, maxGuesses, isSpellChecking, clues, answers);
+        (Puzzle puzzle, DesignResult _) = await StartPuzzleAsync(isDesign: false, width, maxGuesses, isSpellChecking, clues, answers);
 
         return puzzle;
     }
@@ -232,7 +232,7 @@ public class PuzzleService : IPuzzleService
             .FirstOrDefaultAsync(p => p.Id == puzzleId);
     }
 
-    private async Task<(Puzzle puzzle, PuzzleDesign design)> StartPuzzleAsync(bool isDesign, int width, int? maxGuesses, bool isSpellChecking, IEnumerable<string> clues, IEnumerable<string> answers)
+    private async Task<(Puzzle puzzle, DesignResult design)> StartPuzzleAsync(bool isDesign, int width, int? maxGuesses, bool isSpellChecking, IEnumerable<string> clues, IEnumerable<string> answers)
     {
         if (width is < Puzzle.VALIDATION_WIDTH_MINIMUM)
         {
@@ -283,7 +283,7 @@ public class PuzzleService : IPuzzleService
             IsFinished = false,
         };
 
-        var design = new PuzzleDesign
+        var design = new DesignResult
         {
             PuzzleId = puzzle.Id,
         };
@@ -363,11 +363,6 @@ public class PuzzleService : IPuzzleService
             for (int row = 0; row < cluesList.Count; row++)
             {
                 string initalInvariantText = cluesList[row].ToUpperInvariant();
-
-                //if (invariantText.Length != puzzle.Width)
-                //{
-                //    throw new WidthMismatchException(invariantText, invariantText.Length, puzzle.Width);
-                //}
 
                 Guid clueId = _guidProvider.NewGuid();
 

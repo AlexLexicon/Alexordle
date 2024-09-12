@@ -217,7 +217,7 @@ public class HunchService : IHunchService
             }
         }
 
-        if (puzzle.IsSpellChecking)
+        if (!isDesign && puzzle.IsSpellChecking)
         {
             bool isSpelledCorrectly = await _dictionaryService.IsSpelledCorrectlyAsync(puzzleId, guessInvariantText);
             if (!isSpelledCorrectly)
