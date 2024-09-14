@@ -11,7 +11,7 @@ public interface IHunchService
     /// <exception cref="HunchDoesNotExistException"></exception>
     Task<Hunch> GetHunchAsync(Guid puzzleId);
     Task<IReadOnlyList<HunchCharacter>> GetHunchesAsync(Guid puzzleId);
-    /// <exception cref="HunchCharacterNotSupportedException"></exception>
+    /// <exception cref="HunchCharacterNotWhitelistedException"></exception>
     /// <exception cref="PuzzleDoesNotExistException"></exception>
     Task AppendCharacterToHunchAsync(Guid puzzleId, char character);
     Task RemoveCharacterFromHunchAsync(Guid puzzleId);
@@ -78,9 +78,9 @@ public class HunchService : IHunchService
     public async Task AppendCharacterToHunchAsync(Guid puzzleId, char character)
     {
         char invariantCharacter = char.ToUpperInvariant(character);
-        if (!AnswerCharacter.VALIDATION_CHARACTERS_SUPPORTED.Contains(invariantCharacter))
+        if (!AnswerCharacter.VALIDATION_CHARACTERS_WHITELIST.Contains(invariantCharacter))
         {
-            throw new HunchCharacterNotSupportedException(invariantCharacter);
+            throw new HunchCharacterNotWhitelistedException(invariantCharacter);
         }
 
         using var db = await _dbContextFactory.CreateDbContextAsync();
@@ -217,26 +217,6 @@ public class HunchService : IHunchService
             }
         }
 
-        if (!isDesign && puzzle.IsSpellChecking)
-        {
-            bool isSpelledCorrectly = await _dictionaryService.IsSpelledCorrectlyAsync(puzzleId, guessInvariantText);
-            if (!isSpelledCorrectly)
-            {
-                throw new IncorrectSpellingException(guessInvariantText);
-            }
-        }
-
-        IReadOnlyList<string> guessInvariantTexts = await _guessService.GetGuessInvariantTextsAsync(puzzleId);
-
-        if (!isDesign && guessInvariantTexts.Contains(guessInvariantText))
-        {
-            throw new DuplicateGuessException(guessInvariantText);
-        }
-
-        await _hintService.PostCalculateHintsAsync(puzzleId, guesses);
-
-        puzzle.CurrentGuesses++;
-
         bool isAnswer = false;
 
         Answer? answer = await db.Answers
@@ -258,6 +238,26 @@ public class HunchService : IHunchService
                 await _hintService.PostCalculateDesignAnswerHints(answer.Id, guesses);
             }
         }
+
+        if (!isDesign && !isAnswer && puzzle.IsSpellChecking)
+        {
+            bool isSpelledCorrectly = await _dictionaryService.IsSpelledCorrectlyAsync(puzzleId, guessInvariantText);
+            if (!isSpelledCorrectly)
+            {
+                throw new IncorrectSpellingException(guessInvariantText);
+            }
+        }
+
+        IReadOnlyList<string> guessInvariantTexts = await _guessService.GetGuessInvariantTextsAsync(puzzleId);
+
+        if (!isDesign && guessInvariantTexts.Contains(guessInvariantText))
+        {
+            throw new DuplicateGuessException(guessInvariantText);
+        }
+
+        await _hintService.PostCalculateHintsAsync(puzzleId, guesses);
+
+        puzzle.CurrentGuesses++;
 
         bool defeat = puzzle.MaxGuesses is not null && puzzle.CurrentGuesses >= puzzle.MaxGuesses;
         bool victory = puzzle.TotalAnswers - puzzle.CurrentAnswers is <= 0;

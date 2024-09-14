@@ -13,7 +13,23 @@ public interface IPuzzleService
     Task<bool> PuzzleExistsAsync(Guid puzzleId);
     /// <exception cref="PuzzleDoesNotExistException"></exception>
     Task<Puzzle> GetPuzzleAsync(Guid puzzleId);
+    /// <exception cref="ArgumentLessThanException"></exception>
+    /// <exception cref="ArgumentGreaterThanException"></exception>
+    /// <exception cref="WidthMismatchException"></exception>
+    /// <exception cref="DuplicateAnswerException"></exception>
+    /// <exception cref="AnswerCharacterNotWhitelistedException"></exception>
+    /// <exception cref="DuplicateAnswerCharacterException"></exception>
+    /// <exception cref="ClueNotEncodableException"></exception>
+    /// <exception cref="ClueCharacterBlacklistedException"></exception>
     Task<DesignResult> CreateDesignAsync(int width, int? maxGuesses, bool isSpellChecking, IEnumerable<string> clues, IEnumerable<string> answers);
+    /// <exception cref="ArgumentLessThanException"></exception>
+    /// <exception cref="ArgumentGreaterThanException"></exception>
+    /// <exception cref="WidthMismatchException"></exception>
+    /// <exception cref="DuplicateAnswerException"></exception>
+    /// <exception cref="AnswerCharacterNotWhitelistedException"></exception>
+    /// <exception cref="DuplicateAnswerCharacterException"></exception>
+    /// <exception cref="ClueNotEncodableException"></exception>
+    /// <exception cref="ClueCharacterBlacklistedException"></exception>
     Task<Puzzle> StartPuzzleAsync(int width, int? maxGuesses, bool isSpellChecking, IEnumerable<string> clues, IEnumerable<string> answers);
     Task DeletePuzzlesAsync();
 }
@@ -23,17 +39,20 @@ public class PuzzleService : IPuzzleService
     private readonly IDbContextFactory<AlexordleDbContext> _dbContextFactory;
     private readonly IGuidProvider _guidProvider;
     private readonly IHintService _hintService;
+    private readonly IEncodingService _encodingService;
 
     public PuzzleService(
         ILogger<PuzzleService> logger,
         IDbContextFactory<AlexordleDbContext> dbContextFactory,
         IGuidProvider guidProvider,
-        IHintService hintService)
+        IHintService hintService,
+        IEncodingService encodingService)
     {
         _logger = logger;
         _dbContextFactory = dbContextFactory;
         _guidProvider = guidProvider;
         _hintService = hintService;
+        _encodingService = encodingService;
     }
 
     public async Task<bool> PuzzleExistsAsync(Guid puzzleId)
@@ -319,9 +338,9 @@ public class PuzzleService : IPuzzleService
                 {
                     char invariantCharacter = invariantText[column];
 
-                    if (!AnswerCharacter.VALIDATION_CHARACTERS_SUPPORTED.Contains(invariantCharacter))
+                    if (!AnswerCharacter.VALIDATION_CHARACTERS_WHITELIST.Contains(invariantCharacter))
                     {
-                        throw new AnswerCharacterNotSupportedException(invariantCharacter, invariantText);
+                        throw new AnswerCharacterNotWhitelistedException(invariantCharacter, invariantText);
                     }
 
                     bool anotherAnswerContainsCharacter = await db.AnswerCharacters
@@ -364,6 +383,12 @@ public class PuzzleService : IPuzzleService
             {
                 string initalInvariantText = cluesList[row].ToUpperInvariant();
 
+                bool isEncodable = await _encodingService.IsEncodable(initalInvariantText);
+                if (!isEncodable)
+                {
+                    throw new ClueNotEncodableException(initalInvariantText);
+                }
+
                 Guid clueId = _guidProvider.NewGuid();
 
                 string invariantText = string.Empty;
@@ -375,9 +400,9 @@ public class PuzzleService : IPuzzleService
                     {
                         char invariantCharacter = initalInvariantText[column];
 
-                        if (!ClueCharacter.VALIDATION_CHARACTERS_SUPPORTED.Contains(invariantCharacter))
+                        if (ClueCharacter.VALIDATION_CHARACTERS_BLACKLIST.Contains(invariantCharacter))
                         {
-                            throw new ClueCharacterNotSupportedException(invariantCharacter, initalInvariantText);
+                            throw new ClueCharacterBlacklistedException(invariantCharacter, initalInvariantText);
                         }
 
                         var clue = new ClueCharacter
@@ -409,6 +434,7 @@ public class PuzzleService : IPuzzleService
                     Id = clueId,
                     PuzzleId = puzzle.Id,
                     InvariantText = invariantText,
+                    Order = row,
                 });
             }
 

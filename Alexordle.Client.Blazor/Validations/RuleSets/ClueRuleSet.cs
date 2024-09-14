@@ -17,7 +17,6 @@ public class ClueRuleSet : AbstractRuleSet<string?>
         ruleBuilder
             .NotNull()
             .NotSimplyEmpty()
-            .NotAnyWhiteSpace()
             .Length(_ => _designerWidthValidation.CurrentWidth);
     }
 }

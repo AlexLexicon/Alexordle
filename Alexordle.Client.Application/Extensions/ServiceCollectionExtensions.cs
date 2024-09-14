@@ -9,6 +9,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IAnswerService, AnswerService>();
         services.AddSingleton<IClueService, ClueService>();
         services.AddSingleton<IDictionaryService, DictionaryService>();
+        services.AddSingleton<IEncodingService, EncodingService>();
         services.AddSingleton<IGuessService, GuessService>();
         services.AddSingleton<IHintService, HintService>();
         services.AddSingleton<IHunchService, HunchService>();

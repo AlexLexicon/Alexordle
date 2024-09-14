@@ -1,13 +1,10 @@
 ﻿using Alexordle.Client.Application.Database.Entities;
 using Alexordle.Client.Application.Exceptions;
 using Alexordle.Client.Application.Models;
-using System.Text;
-using System.Web;
 
 namespace Alexordle.Client.Application.Services;
 public interface ISerializationService
 {
-    Task<string> EncodeSerializedPuzzleForUrlAsync(string decodedBase64SerializedPuzzleString);
     /// <exception cref="SerializePuzzleException"></exception>
     Task<string> SerializePuzzleAsync(Guid puzzleId);
     /// <exception cref="SerializePalleteException"></exception>
@@ -23,44 +20,42 @@ public interface ISerializationService
 }
 public class SerializationService : ISerializationService
 {
-    private const char SERIALIZATION_DELIMITER_PRIMARY = ',';
-    private const char SERIALIZATION_DELIMITER_SECONDARY = ';';
-    private const int SERIALIZED_PUZZLE_PARTS_COUNT = 5 + 1;
+    private const char SERIALIZATION_DELIMITER_START = '⧕';
+    private const char SERIALIZATION_DELIMITER = '⧓';
+    private const char SERIALIZATION_DELIMITER_END = '⧔';
+    private const char SERIALIZATION_DELIMITER_NESTED = '⧗';
+    private const int SERIALIZED_PUZZLE_PARTS_COUNT = 5;
 
     private readonly IPuzzleService _puzzleService;
     private readonly IAnswerService _answerService;
     private readonly IClueService _clueService;
     private readonly IGuessService _guessService;
     private readonly IHunchService _hunchService;
+    private readonly IEncodingService _encodingService;
 
     public SerializationService(
         IPuzzleService puzzleService,
         IAnswerService answerService,
         IClueService clueService,
         IGuessService guessService,
-        IHunchService hunchService)
+        IHunchService hunchService,
+        IEncodingService encodingService)
     {
         _puzzleService = puzzleService;
         _answerService = answerService;
         _clueService = clueService;
         _guessService = guessService;
         _hunchService = hunchService;
-    }
-
-    public Task<string> EncodeSerializedPuzzleForUrlAsync(string decodedBase64SerializedPuzzleString)
-    {
-        string encodedBase64SerializedPuzzleString = HttpUtility.UrlEncode(decodedBase64SerializedPuzzleString);
-
-        return Task.FromResult(encodedBase64SerializedPuzzleString);
+        _encodingService = encodingService;
     }
 
     public async Task<string> SerializePuzzleAsync(Guid puzzleId)
     {
         try
         {
-            string base64SerializedPuzzleString = await SerializePuzzleToBase64Async(puzzleId);
+            string base64SerializedPuzzle = await SerializePuzzleToBase64Async(puzzleId);
 
-            return await EncodeSerializedPuzzleForUrlAsync(base64SerializedPuzzleString);
+            return await _encodingService.UrlEncodeAsync(base64SerializedPuzzle);
         }
         catch (Exception e)
         {
@@ -72,56 +67,55 @@ public class SerializationService : ISerializationService
     {
         try
         {
-            var getHunchesTask = _hunchService.GetHunchesAsync(puzzleId);
-
-            string serializedPallete = string.Empty;
+            string serializedPallete = $"{SERIALIZATION_DELIMITER_START}";
 
             int row = 0;
             bool complete = false;
             while (!complete)
             {
-                IReadOnlyList<GuessCharacter> guesses = await _guessService.GetGuessesAsync(puzzleId, row);
-
-                foreach (GuessCharacter guess in guesses)
+                serializedPallete = await ConcatenateCharactersAsync<GuessCharacter>(serializedPallete, async () =>
                 {
-                    char invariantCharacter = guess.InvariantCharacter;
-                    if (invariantCharacter is SERIALIZATION_DELIMITER_PRIMARY or SERIALIZATION_DELIMITER_SECONDARY)
-                    {
-                        throw new Exception($"Guess was the special chracter '{SERIALIZATION_DELIMITER_PRIMARY}' or '{SERIALIZATION_DELIMITER_SECONDARY}'.");
-                    }
+                    IReadOnlyList<GuessCharacter> guesses = await _guessService.GetGuessesAsync(puzzleId, row);
 
-                    serializedPallete += $"{invariantCharacter}{SERIALIZATION_DELIMITER_SECONDARY}";
-                }
+                    complete = guesses.Count is <= 0;
+
+                    return guesses;
+                });
 
                 row++;
-                complete = guesses.Count is <= 0;
             }
 
-            serializedPallete = serializedPallete.TrimEnd(SERIALIZATION_DELIMITER_SECONDARY);
-            serializedPallete += SERIALIZATION_DELIMITER_PRIMARY;
+            serializedPallete += SERIALIZATION_DELIMITER;
 
-            IReadOnlyList<HunchCharacter> hunches = await getHunchesTask;
-            foreach (HunchCharacter hunch in hunches)
+            serializedPallete = await ConcatenateCharactersAsync<HunchCharacter>(serializedPallete, async () =>
             {
-                char invariantCharacter = hunch.InvariantCharacter;
-                if (invariantCharacter is SERIALIZATION_DELIMITER_PRIMARY or SERIALIZATION_DELIMITER_SECONDARY)
-                {
-                    throw new Exception($"Guess was the special chracter '{SERIALIZATION_DELIMITER_PRIMARY}' or '{SERIALIZATION_DELIMITER_SECONDARY}'.");
-                }
+                return await _hunchService.GetHunchesAsync(puzzleId);
+            });
 
-                serializedPallete += $"{invariantCharacter}{SERIALIZATION_DELIMITER_SECONDARY}";
-            }
-
-            serializedPallete = serializedPallete.TrimEnd(SERIALIZATION_DELIMITER_SECONDARY);
-
-            serializedPallete += $"{SERIALIZATION_DELIMITER_PRIMARY}";
-
-            return serializedPallete;
+            return $"{serializedPallete}{SERIALIZATION_DELIMITER_END}";
         }
         catch (Exception e)
         {
             throw new SerializePalleteException(puzzleId, e);
         }
+    }
+
+    private async Task<string> ConcatenateCharactersAsync<TCharacter>(string serialization, Func<Task<IEnumerable<TCharacter>>> getCharactersDelegate) where TCharacter : Character
+    {
+        IEnumerable<TCharacter> characters = await getCharactersDelegate.Invoke();
+
+        foreach (Character character in characters)
+        {
+            char invariantCharacter = character.InvariantCharacter;
+            if (invariantCharacter is SERIALIZATION_DELIMITER_START or SERIALIZATION_DELIMITER or SERIALIZATION_DELIMITER_END)
+            {
+                throw new Exception($"A character was one of the blacklisted chracters '{SERIALIZATION_DELIMITER_START}', {SERIALIZATION_DELIMITER} or '{SERIALIZATION_DELIMITER_END}'.");
+            }
+
+            serialization += invariantCharacter;
+        }
+
+        return serialization;
     }
 
     public async Task<string> SerializeDesignAsync(Guid puzzleId)
@@ -140,9 +134,9 @@ public class SerializationService : ISerializationService
     {
         try
         {
-            string base64SerializedPuzzleString = HttpUtility.UrlDecode(serializedPuzzle);
+            string base64SerializedPuzzleString = await _encodingService.UrlDecodeAsync(serializedPuzzle);
 
-            Design design = GetDesignFromSerializedBase64Puzzle(base64SerializedPuzzleString);
+            Design design = await GetDesignFromSerializedBase64PuzzleAsync(base64SerializedPuzzleString);
 
             if (design.Answers.Count is <= 0)
             {
@@ -161,9 +155,17 @@ public class SerializationService : ISerializationService
     {
         try
         {
-            string[] parts = serializedPallete.Split(SERIALIZATION_DELIMITER_PRIMARY);
+            if (string.IsNullOrWhiteSpace(serializedPallete) || !serializedPallete.StartsWith(SERIALIZATION_DELIMITER_START) || !serializedPallete.EndsWith(SERIALIZATION_DELIMITER_END))
+            {
+                throw new MalformedSerializedPalleteException(serializedPallete);
+            }
 
-            if (parts.Length is not 3)
+            //remove the start and end delimeter
+            serializedPallete = serializedPallete[1..^1];
+
+            string[] parts = serializedPallete.Split(SERIALIZATION_DELIMITER);
+
+            if (parts.Length is not 2)
             {
                 throw new Exception("There were not exactly two parts to the serialized pallete string.");
             }
@@ -173,39 +175,29 @@ public class SerializationService : ISerializationService
             string guessesString = parts[0];
             string hunchesString = parts[1];
 
-            string[] guesses = guessesString
-                .Split(SERIALIZATION_DELIMITER_SECONDARY)
-                .Where(g => !string.IsNullOrWhiteSpace(g))
-                .ToArray();
-
-            string[] hunches = hunchesString
-                .Split(SERIALIZATION_DELIMITER_SECONDARY)
-                .Where(h => !string.IsNullOrWhiteSpace(h))
-                .ToArray();
-
-            if (guesses.Length is > 0)
+            var guesses = new List<char>();
+            foreach (char character in guessesString)
             {
-                if (guesses.Length % puzzle.Width is not 0)
+                guesses.Add(character);
+            }
+
+            var hunches = new List<char>();
+            foreach (char character in hunchesString)
+            {
+                hunches.Add(character);
+            }
+
+            if (guesses.Count is > 0)
+            {
+                if (guesses.Count % puzzle.Width is not 0)
                 {
                     throw new Exception("The number of guesses does not match the mod width of the puzzle.");
                 }
 
                 int column = 0;
-                foreach (string guess in guesses)
+                foreach (char guess in guesses)
                 {
-                    if (guess.Length is <= 0)
-                    {
-                        throw new Exception("A guess was empty.");
-                    }
-
-                    if (guess.Length is > 1)
-                    {
-                        throw new Exception("A guess was more than one character.");
-                    }
-
-                    char character = guess[0];
-
-                    await _hunchService.AppendCharacterToHunchAsync(puzzleId, character);
+                    await _hunchService.AppendCharacterToHunchAsync(puzzleId, guess);
 
                     if (column >= puzzle.Width - 1)
                     {
@@ -220,23 +212,11 @@ public class SerializationService : ISerializationService
                 }
             }
 
-            if (hunches.Length is > 0)
+            if (hunches.Count is > 0)
             {
-                foreach (string hunch in hunches)
+                foreach (char hunch in hunches)
                 {
-                    if (hunch.Length is <= 0)
-                    {
-                        throw new Exception("A hunch was empty.");
-                    }
-
-                    if (hunch.Length is > 1)
-                    {
-                        throw new Exception("A hunch was more than one character.");
-                    }
-
-                    char character = hunch[0];
-
-                    await _hunchService.AppendCharacterToHunchAsync(puzzleId, character);
+                    await _hunchService.AppendCharacterToHunchAsync(puzzleId, hunch);
                 }
             }
         }
@@ -246,13 +226,11 @@ public class SerializationService : ISerializationService
         }
     }
 
-    public Task<Design> DeserializeDesignAsync(string base64SerializedDesign)
+    public async Task<Design> DeserializeDesignAsync(string base64SerializedDesign)
     {
         try
         {
-            Design design = GetDesignFromSerializedBase64Puzzle(base64SerializedDesign);
-
-            return Task.FromResult(design);
+            return await GetDesignFromSerializedBase64PuzzleAsync(base64SerializedDesign);
         }
         catch (Exception e)
         {
@@ -270,46 +248,46 @@ public class SerializationService : ISerializationService
         IReadOnlyList<string> answers = await getAnswerInvariantTextsTask;
         IReadOnlyList<string> clues = await getClueInvariantTextsTask;
 
-        if (ContainsSpecialCharacters(clues) || ContainsSpecialCharacters(answers))
+        if (IsContainingReservedDelimiterCharacters(clues) || IsContainingReservedDelimiterCharacters(answers))
         {
-            throw new Exception($"The special chracters '{SERIALIZATION_DELIMITER_PRIMARY}' and '{SERIALIZATION_DELIMITER_SECONDARY}' cannot be provided.");
+            throw new Exception($"The reserved delimiter chracters '{SERIALIZATION_DELIMITER_START}', '{SERIALIZATION_DELIMITER}', '{SERIALIZATION_DELIMITER_NESTED}' and '{SERIALIZATION_DELIMITER_END}' cannot be used in a provided clue or answer.");
         }
-
-        answers = answers
-            .Select(a => a.TrimEnd())
-            .ToList();
-
-        clues = clues
-            .Select(c => c.TrimEnd())
-            .ToList();
 
         string widthString = puzzle.Width.ToString();
         string maxGuessesString = puzzle.MaxGuesses?.ToString() ?? string.Empty;
-        string isSpellCheckingString = (puzzle.IsSpellChecking ? 1 : 0).ToString();
-        string cluesString = string.Join(SERIALIZATION_DELIMITER_SECONDARY, clues);
-        string answersString = string.Join(SERIALIZATION_DELIMITER_SECONDARY, answers);
+        string isSpellCheckingString = puzzle.IsSpellChecking ? "1" : string.Empty;
+        string cluesString = string.Join(SERIALIZATION_DELIMITER_NESTED, clues);
+        string answersString = string.Join(SERIALIZATION_DELIMITER_NESTED, answers);
 
         if (ContainsSpecialCharacters(maxGuessesString, widthString, isSpellCheckingString))
         {
-            throw new Exception($"The special chracters '{SERIALIZATION_DELIMITER_PRIMARY}' and '{SERIALIZATION_DELIMITER_SECONDARY}' cannot be provided.");
+            throw new Exception($"The reserved delimiter chracters '{SERIALIZATION_DELIMITER_START}', '{SERIALIZATION_DELIMITER}', '{SERIALIZATION_DELIMITER_NESTED}' and '{SERIALIZATION_DELIMITER_END}' was used in the design.");
         }
 
-        string decodedSerializedPuzzleString = string.Join(SERIALIZATION_DELIMITER_PRIMARY, widthString, maxGuessesString, isSpellCheckingString, cluesString, answersString);
+        string serializedPuzzle = string.Join(SERIALIZATION_DELIMITER, widthString, maxGuessesString, isSpellCheckingString, cluesString, answersString);
 
-        decodedSerializedPuzzleString += SERIALIZATION_DELIMITER_PRIMARY; //we append the delimiter at the end to better detect malformed codes.
+        serializedPuzzle = $"{SERIALIZATION_DELIMITER_START}{serializedPuzzle}{SERIALIZATION_DELIMITER_END}";
 
-        byte[] decodedSerializedPuzzleBytes = Encoding.Default.GetBytes(decodedSerializedPuzzleString);
+        byte[] serializedPuzzleBytes = await _encodingService.ByteEncodeAsync(serializedPuzzle);
 
-        return Convert.ToBase64String(decodedSerializedPuzzleBytes);
+        return await _encodingService.Base64EncodeAsync(serializedPuzzleBytes);
     }
 
-    private Design GetDesignFromSerializedBase64Puzzle(string base64SerializedPuzzleString)
+    private async Task<Design> GetDesignFromSerializedBase64PuzzleAsync(string base64SerializedPuzzleString)
     {
-        byte[] decodedSerializedPuzzleBytes = Convert.FromBase64String(base64SerializedPuzzleString);
+        byte[] serializedPuzzleBytes = await _encodingService.Base64DecodeAsync(base64SerializedPuzzleString);
 
-        string decodedSerializedPuzzleString = Encoding.Default.GetString(decodedSerializedPuzzleBytes);
+        string serializedPuzzle = await _encodingService.ByteDecodeAsync(serializedPuzzleBytes);
 
-        string[] parts = decodedSerializedPuzzleString.Split(SERIALIZATION_DELIMITER_PRIMARY);
+        if (string.IsNullOrWhiteSpace(serializedPuzzle) || !serializedPuzzle.StartsWith(SERIALIZATION_DELIMITER_START) || !serializedPuzzle.EndsWith(SERIALIZATION_DELIMITER_END))
+        {
+            throw new MalformedSerializedPuzzleException(serializedPuzzle);
+        }
+
+        //remove the start and end delimeter
+        serializedPuzzle = serializedPuzzle[1..^1];
+
+        string[] parts = serializedPuzzle.Split(SERIALIZATION_DELIMITER);
 
         if (parts.Length is > SERIALIZED_PUZZLE_PARTS_COUNT)
         {
@@ -329,14 +307,14 @@ public class SerializationService : ISerializationService
 
         int width = int.Parse(widthString);
         int? maxGuesses = string.IsNullOrWhiteSpace(maxGuessesString) ? null : int.Parse(maxGuessesString);
-        bool isSpellChecking = int.Parse(isSpellCheckingString) is 1;
+        bool isSpellChecking = isSpellCheckingString is "1";
 
         string[] clues = cluesString
-            .Split(SERIALIZATION_DELIMITER_SECONDARY)
+            .Split(SERIALIZATION_DELIMITER_NESTED)
             .Where(c => !string.IsNullOrWhiteSpace(c))
             .ToArray();
 
-        string[] answers = answersString.Split(SERIALIZATION_DELIMITER_SECONDARY);
+        string[] answers = answersString.Split(SERIALIZATION_DELIMITER_NESTED);
 
         return new Design
         {
@@ -348,14 +326,17 @@ public class SerializationService : ISerializationService
         };
     }
 
-    private bool ContainsSpecialCharacters(params string[] parts) => ContainsSpecialCharacters(partsEnumerable: parts);
-    private bool ContainsSpecialCharacters(IEnumerable<string> partsEnumerable)
+    private bool ContainsSpecialCharacters(params string[] strings) => IsContainingReservedDelimiterCharacters(allStrings: strings);
+    private bool IsContainingReservedDelimiterCharacters(IEnumerable<string> allStrings)
     {
-        foreach (string part in partsEnumerable)
+        foreach (string str in allStrings)
         {
-            if (part.Contains(SERIALIZATION_DELIMITER_PRIMARY) || part.Contains(SERIALIZATION_DELIMITER_SECONDARY))
+            foreach (char character in str)
             {
-                return true;
+                if (character is SERIALIZATION_DELIMITER_START or SERIALIZATION_DELIMITER or SERIALIZATION_DELIMITER_END or SERIALIZATION_DELIMITER_NESTED)
+                {
+                    return true;
+                }
             }
         }
 

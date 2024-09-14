@@ -17,9 +17,5 @@ public class GuessCharacter : Character, IEntityTypeConfiguration<GuessCharacter
                 gc.Row,
                 gc.Column,
             });
-
-        builder
-            .Property(gc => gc.Hint)
-            .HasConversion<string>();
     }
 }

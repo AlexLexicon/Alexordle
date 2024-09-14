@@ -252,7 +252,7 @@ public partial class DesignerPageViewModel : ObservableObject, INotificationHand
                     {
                         char answerCharacter = char.ToUpperInvariant(answer[index]);
 
-                        if (AnswerCharacter.VALIDATION_CHARACTERS_SUPPORTED.Contains(answerCharacter))
+                        if (AnswerCharacter.VALIDATION_CHARACTERS_WHITELIST.Contains(answerCharacter))
                         {
                             character = answerCharacter;
                         }
@@ -334,15 +334,23 @@ public partial class DesignerPageViewModel : ObservableObject, INotificationHand
     private async Task ResetDesignAsync(Design? design)
     {
         int width = design?.Width ?? 5;
+        int? maxGuesses = design is null ? 8 : design.MaxGuesses;
 
         if (WidthInputViewModel is not null)
         {
             WidthInputViewModel.Text = width.ToString();
         }
 
+        if (maxGuesses is null)
+        {
+            IsInfiniteGuesses = true;
+
+            IsInfiniteGuessesChanged();
+        }
+
         if (MaxGuessesInputViewModel is not null)
         {
-            MaxGuessesInputViewModel.Text = design?.MaxGuesses.ToString() ?? "8";
+            MaxGuessesInputViewModel.Text = maxGuesses.ToString();
         }
 
         IsSpellChecking = design?.IsSpellChecking ?? true;
@@ -380,6 +388,7 @@ public partial class DesignerPageViewModel : ObservableObject, INotificationHand
         HasDuplicateAnswerCharacter = hasDuplicateAnswerCharacter;
 
         IsValid = IsEnoughAnswers && !HasDuplicateAnswerCharacter;
+
         if (WidthInputViewModel is not null)
         {
             bool isValid = await WidthInputViewModel.CheckAndValidateAsync();
@@ -388,14 +397,19 @@ public partial class DesignerPageViewModel : ObservableObject, INotificationHand
                 IsValid = false;
             }
         }
-        if (MaxGuessesInputViewModel is not null)
+
+        if (!IsInfiniteGuesses)
         {
-            bool isValid = await MaxGuessesInputViewModel.CheckAndValidateAsync();
-            if (!isValid)
+            if (MaxGuessesInputViewModel is not null)
             {
-                IsValid = false;
+                bool isValid = await MaxGuessesInputViewModel.CheckAndValidateAsync();
+                if (!isValid)
+                {
+                    IsValid = false;
+                }
             }
         }
+
         foreach (ListInputViewModel answerInputViewModel in AnswerInputViewModels)
         {
             bool isValid = await answerInputViewModel.CheckAndValidateAsync();
@@ -404,6 +418,7 @@ public partial class DesignerPageViewModel : ObservableObject, INotificationHand
                 IsValid = false;
             }
         }
+
         foreach (ListInputViewModel clueInputViewModel in ClueInputViewModels)
         {
             bool isValid = await clueInputViewModel.CheckAndValidateAsync();

@@ -38,7 +38,8 @@ public class ShareService : IShareService
 
         bool isDefeat = puzzle.IsFinished && puzzle.TotalAnswers - puzzle.CurrentAnswers > 0;
 
-        string share = $"alexordle {(isDefeat ? "?" : puzzle.CurrentGuesses)}/{puzzle.MaxGuesses}{Environment.NewLine}";
+        string? maxGuessesString = puzzle.MaxGuesses is null ? "∞" : puzzle.MaxGuesses.ToString();
+        string share = $"alexordle {(isDefeat ? "?" : puzzle.CurrentGuesses)}/{maxGuessesString}{Environment.NewLine}";
 
         int row = 0;
         bool hasClues = false;

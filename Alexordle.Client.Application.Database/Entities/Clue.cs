@@ -7,6 +7,7 @@ public class Clue : IEntityTypeConfiguration<Clue>
     public required Guid Id { get; init; }
     public required Guid PuzzleId { get; init; }
     public required string InvariantText { get; init; }
+    public required int Order { get; init; }
 
     public void Configure(EntityTypeBuilder<Clue> builder)
     {

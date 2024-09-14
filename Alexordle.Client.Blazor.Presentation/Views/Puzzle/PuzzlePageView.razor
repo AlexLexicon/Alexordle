@@ -40,18 +40,18 @@ else
         </div>
     </div>
     <div class="mx-auto max-w-lg">
-@*         @if (ViewModel.IsInfinite)
-        {
-            <div class="text-center text-2xl">
-                &infin;
-            </div>
-        } *@
         <MessageView ViewModel="@ViewModel.MessageViewModel" />
         @if (!ViewModel.IsFinished)
         {
             <div class="flex justify-center">
                 <KeyboardView ViewModel="@ViewModel.KeyboardViewModel" />
             </div>
+            @if (!ViewModel.IsSpellChecking)
+            {
+                <div class="text-center text-slate-500">
+                    Spell checking is disabled.
+                </div>
+            }
         }
         else
         {

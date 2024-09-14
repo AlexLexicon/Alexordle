@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 namespace Alexordle.Client.Application.Services;
 public interface IPersistenceService
 {
+    Task ClearDataAsync();
     Task SavePuzzleAsync(Guid puzzleId);
     Task SaveDesignAsync(Guid puzzleId);
     Task<Puzzle?> LoadPuzzleAsync(string serializedPuzzle);
@@ -28,6 +29,11 @@ public class PersistenceService : IPersistenceService
         _storageService = storageService;
     }
 
+    public async Task ClearDataAsync()
+    {
+        await _storageService.ClearAsync();
+    }
+
     public async Task SavePuzzleAsync(Guid puzzleId)
     {
         var serializePuzzleTask = _serializationService.SerializePuzzleAsync(puzzleId);
@@ -36,21 +42,21 @@ public class PersistenceService : IPersistenceService
         string serializedPuzzle = await serializePuzzleTask;
         string serializedPallete = await serializePalleteTask;
 
-        await _storageService.Store(serializedPuzzle, serializedPallete);
+        await _storageService.StoreAsync(serializedPuzzle, serializedPallete);
     }
 
     public async Task SaveDesignAsync(Guid puzzleId)
     {
         string serializedDesign = await _serializationService.SerializeDesignAsync(puzzleId);
 
-        await _storageService.Store(KEY_DESIGN, serializedDesign);
+        await _storageService.StoreAsync(KEY_DESIGN, serializedDesign);
     }
 
     public async Task<Puzzle?> LoadPuzzleAsync(string serializedPuzzle)
     {
         try
         {
-            string? serializedPallete = await _storageService.Fetch(serializedPuzzle);
+            string? serializedPallete = await _storageService.FetchAsync(serializedPuzzle);
 
             if (serializedPallete is not null)
             {
@@ -73,7 +79,7 @@ public class PersistenceService : IPersistenceService
         string? serializedDesign = null;
         try
         {
-            serializedDesign = await _storageService.Fetch(KEY_DESIGN);
+            serializedDesign = await _storageService.FetchAsync(KEY_DESIGN);
 
             if (serializedDesign is not null)
             {

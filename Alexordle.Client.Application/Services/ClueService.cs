@@ -23,7 +23,7 @@ public class ClueService : IClueService
 
         return await db.Clues
              .Where(a => a.PuzzleId == puzzleId)
-             .OrderBy(a => a.InvariantText)
+             .OrderBy(a => a.Order)
              .Select(a => a.InvariantText)
              .ToListAsync();
     }

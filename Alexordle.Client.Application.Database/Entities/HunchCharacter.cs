@@ -13,9 +13,5 @@ public class HunchCharacter : Character, IEntityTypeConfiguration<HunchCharacter
                 hc.PuzzleId,
                 hc.Column,
             });
-
-        builder
-            .Property(hc => hc.Hint)
-            .HasConversion<string>();
     }
 }

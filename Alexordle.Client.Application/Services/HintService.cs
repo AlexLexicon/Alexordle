@@ -118,13 +118,13 @@ public class HintService : IHintService
         ClueCharacter? clue = await db.ClueCharacters
             .AsNoTracking()
             .Where(c => c.PuzzleId == puzzleId && c.InvariantCharacter == invariantCharacter)
-            .OrderByDescending(c => c.Hint)
+            .OrderByDescending(c => (int)c.Hint)
             .FirstOrDefaultAsync();
 
         GuessCharacter? guess = await db.GuessCharacters
             .AsNoTracking()
             .Where(g => g.PuzzleId == puzzleId && g.InvariantCharacter == invariantCharacter)
-            .OrderByDescending(g => g.Hint)
+            .OrderByDescending(g => (int)g.Hint)
             .FirstOrDefaultAsync();
 
         if (guess is null && clue is null)
@@ -144,11 +144,23 @@ public class HintService : IHintService
             return Hints.Incorrect;
         }
 
-        Hints guessHint = guess.Hint;
-
-        if (guessHint is > Hints.None)
+        if (clue is null)
         {
-            return guessHint;
+            Hints guessHint = guess.Hint;
+
+            if (guessHint is > Hints.None)
+            {
+                return guessHint;
+            }
+
+            return Hints.Incorrect;
+        }
+
+        Hints maxHint = (Hints)Math.Max((int)clue.Hint, (int)guess.Hint);
+
+        if (maxHint is > Hints.None)
+        {
+            return maxHint;
         }
 
         return Hints.Incorrect;

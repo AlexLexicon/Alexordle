@@ -8,7 +8,6 @@ using Alexordle.Client.Blazor.ViewModels.Keyboard;
 using Alexordle.Client.Blazor.ViewModels.Pallete;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Lexicom.Concentrate.Blazor.WebAssembly.Amenities.Notifications;
 using Lexicom.Concentrate.Blazor.WebAssembly.Amenities.Services;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -28,6 +27,7 @@ public partial class PuzzlePageViewModel : ObservableObject, INotificationHandle
     private readonly IPersistenceService _persistenceService;
     private readonly IHunchService _hunchService;
     private readonly IKeyboardService _keyboardService;
+    private readonly IEncodingService _encodingService;
 
     public PuzzlePageViewModel(
         ILogger<PuzzlePageViewModel> logger,
@@ -44,7 +44,8 @@ public partial class PuzzlePageViewModel : ObservableObject, INotificationHandle
         IKeyboardService keyboardService,
         PalleteViewModel palleteViewModel,
         KeyboardViewModel keyboardViewModel,
-        MessageViewModel messageViewModel)
+        MessageViewModel messageViewModel,
+        IEncodingService encodingService)
     {
         _logger = logger;
         _mediator = mediator;
@@ -58,6 +59,7 @@ public partial class PuzzlePageViewModel : ObservableObject, INotificationHandle
         _persistenceService = persistenceService;
         _hunchService = hunchService;
         _keyboardService = keyboardService;
+        _encodingService = encodingService;
 
         PalleteViewModel = palleteViewModel;
         KeyboardViewModel = keyboardViewModel;
@@ -92,6 +94,9 @@ public partial class PuzzlePageViewModel : ObservableObject, INotificationHandle
 
     [ObservableProperty]
     private bool _isInfinite;
+
+    [ObservableProperty]
+    private bool _isSpellChecking;
 
     public async Task Handle(PuzzleSubmitNotification notification, CancellationToken cancellationToken)
     {
@@ -131,13 +136,14 @@ public partial class PuzzlePageViewModel : ObservableObject, INotificationHandle
                 //the query string is automatically decoded by blazor but we want to keep it encoded.
                 if (SerializedPuzzle is not null)
                 {
-                    SerializedPuzzle = await _serializationService.EncodeSerializedPuzzleForUrlAsync(SerializedPuzzle);
+                    SerializedPuzzle = await _encodingService.UrlEncodeAsync(SerializedPuzzle);
                 }
 
                 Puzzle puzzle = await LoadSerializedPuzzleAsync();
 
                 PuzzleId = puzzle.Id;
                 IsInfinite = puzzle.MaxGuesses is null;
+                IsSpellChecking = puzzle.IsSpellChecking;
 
                 KeyboardViewModel.Create();
 
